@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>⚡ PowerTracker — Live Blackout Map</title>
+    <title>⚡ 3awd9ass — Live Blackout Map</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,8 +15,15 @@
 
     <!-- Leaflet CSS + JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer>
     </script>
+
+    <!-- Perf: warm up connections to the domains we actually hit at runtime -->
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://b.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://c.tile.openstreetmap.org" />
+    <link rel="preconnect" href="https://njfulpklvqezflxiozhn.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
 
     <style>
         /* ----- RESET & BASE ----- */
@@ -188,6 +195,7 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+            min-height: 0;
         }
         #map {
             width: 100%;
@@ -195,7 +203,17 @@
             background: #dde2ed;
         }
 
-        /* leaflet tweaks */
+        /* ----- FIX: Popup layering above map and bottom sheet ----- */
+        .leaflet-popup {
+            z-index: 1000 !important;
+        }
+        .leaflet-popup-content-wrapper {
+            z-index: 1001 !important;
+        }
+        .leaflet-popup-tip {
+            z-index: 1001 !important;
+        }
+
         .leaflet-control-zoom {
             border: none !important;
             box-shadow: var(--shadow-sm) !important;
@@ -227,6 +245,8 @@
             transition: transform 0.2s;
             cursor: pointer;
             position: relative;
+            contain: layout style paint;
+            will-change: transform;
         }
         .custom-marker:hover {
             transform: scale(1.15);
@@ -255,6 +275,8 @@
             border-radius: 50%;
             border: 2px solid rgba(255, 107, 107, 0.4);
             animation: ring-pulse 2s infinite;
+            will-change: transform, opacity;
+            contain: strict;
         }
         @keyframes ring-pulse {
             0% {
@@ -276,7 +298,6 @@
             }
         }
 
-        /* user location marker */
         .user-marker {
             width: 20px;
             height: 20px;
@@ -285,6 +306,8 @@
             border-radius: 50%;
             box-shadow: 0 0 0 8px rgba(108, 99, 255, 0.25);
             animation: user-pulse 2s infinite;
+            will-change: box-shadow;
+            contain: strict;
         }
         @keyframes user-pulse {
             0%,
@@ -296,7 +319,6 @@
             }
         }
 
-        /* popup */
         .leaflet-popup-content-wrapper {
             border-radius: var(--radius-sm) !important;
             box-shadow: var(--shadow-md) !important;
@@ -390,6 +412,7 @@
             cursor: pointer;
             transition: var(--transition);
             width: fit-content;
+            pointer-events: auto; /* ensure clickable */
         }
         .popup-zone .report-btn:hover {
             background: var(--danger-dark);
@@ -412,12 +435,12 @@
             left: 0;
             right: 0;
             z-index: 15;
-            max-height: 60vh;
+            max-height: 55vh;
             background: var(--bg-glass);
             backdrop-filter: blur(24px) saturate(1.4);
             border-radius: var(--radius-lg) var(--radius-lg) 0 0;
             box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.10);
-            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), max-height 0.4s ease;
+            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
             transform: translateY(calc(100% - var(--sheet-handle-height)));
             overflow: hidden;
             border-top: 1px solid rgba(255, 255, 255, 0.5);
@@ -448,7 +471,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px 10px;
+            padding: 0 16px 8px;
             flex-shrink: 0;
         }
         .sheet-header h3 {
@@ -495,10 +518,11 @@
         .sheet-body {
             padding: 0 12px 12px;
             overflow-y: auto;
-            max-height: calc(60vh - 100px);
+            max-height: calc(55vh - 100px);
             display: flex;
             flex-direction: column;
             gap: 6px;
+            -webkit-overflow-scrolling: touch;
         }
         .sheet-body .zone-item {
             display: flex;
@@ -511,10 +535,7 @@
             border: 1px solid rgba(255, 255, 255, 0.7);
             transition: var(--transition);
             cursor: pointer;
-        }
-        .sheet-body .zone-item:hover {
-            background: rgba(255, 255, 255, 0.85);
-            transform: translateX(4px);
+            contain: layout style paint;
         }
         .sheet-body .zone-item:active {
             transform: scale(0.98);
@@ -665,6 +686,7 @@
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(4px);
+            z-index: 1000;
         }
         .fab-report:hover {
             transform: scale(1.08) translateY(-2px);
@@ -971,11 +993,11 @@
                 right: 14px;
             }
             .bottom-sheet {
-                max-height: 65vh;
+                max-height: 60vh;
                 border-radius: var(--radius-md) var(--radius-md) 0 0;
             }
             .bottom-sheet .sheet-body {
-                max-height: calc(65vh - 100px);
+                max-height: calc(60vh - 100px);
                 padding: 0 10px 10px;
             }
             .sheet-body .zone-item {
@@ -1053,6 +1075,40 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        /* ----- PERF: cheaper compositing on phones ----- */
+        /* backdrop-filter blur is one of the most GPU-expensive CSS effects;
+           stacked large-blur-radius panels are a common cause of mobile jank.
+           Keep the glass look but shrink the blur radius under ~600px. */
+        @media (max-width: 600px) {
+            .app-header {
+                backdrop-filter: blur(10px) saturate(1.2);
+            }
+            .bottom-sheet {
+                backdrop-filter: blur(14px) saturate(1.2);
+            }
+            .modal-overlay {
+                backdrop-filter: blur(8px);
+            }
+            .modal-box {
+                backdrop-filter: blur(14px);
+            }
+            .toast {
+                backdrop-filter: blur(6px);
+            }
+        }
+
+        /* Respect reduced-motion preference and cut CPU/GPU load from the
+           always-on infinite animations for anyone who's opted out of motion. */
+        @media (prefers-reduced-motion: reduce) {
+            .header-actions .badge-dot::after,
+            .custom-marker.marker-off,
+            .custom-marker .pulse-ring,
+            .user-marker,
+            .loading-overlay .spinner {
+                animation: none !important;
+            }
         }
     </style>
 </head>
@@ -1156,11 +1212,10 @@
         const API_URL =
             'https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?select=*';
         const API_KEY = 'sb_publishable_C_7rg0jf6-e925Tji5n-qA_mLYruFUp';
-        const POLL_INTERVAL_MS = 12000; // increased for performance
+        const POLL_INTERVAL_MS = 15000;
         const MAP_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         const MAP_ATTRIB = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
 
-        // Governorate centers (Tunisia)
         const GOV_COORDS = {
             'Tunis': { lat: 36.8065, lng: 10.1815 },
             'Ariana': { lat: 36.8601, lng: 10.1934 },
@@ -1192,7 +1247,6 @@
         //  STATE
         // ============================================================
         let zones = [];
-        let prevZones = []; // for diffing
         let map = null;
         let markers = {};
         let userMarker = null;
@@ -1202,6 +1256,7 @@
         let isSheetOpen = false;
         let pollTimer = null;
         let isRefreshing = false;
+        let zoneHashes = new Map();
 
         // ============================================================
         //  DOM REFS
@@ -1250,6 +1305,8 @@
         //  API
         // ============================================================
         async function fetchZones() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000);
             try {
                 const resp = await fetch(API_URL, {
                     headers: {
@@ -1257,6 +1314,7 @@
                         'Authorization': `Bearer ${API_KEY}`,
                         'Accept': 'application/json',
                     },
+                    signal: controller.signal,
                 });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
@@ -1270,13 +1328,19 @@
                     raw: item,
                 }));
             } catch (err) {
-                console.warn('Fetch error:', err);
+                if (err.name === 'AbortError') {
+                    console.warn('Fetch timed out');
+                } else {
+                    console.warn('Fetch error:', err);
+                }
                 return null;
+            } finally {
+                clearTimeout(timeout);
             }
         }
 
         // ============================================================
-        //  COORDINATE HELPERS (governorate-based)
+        //  COORDINATE HELPERS
         // ============================================================
         function getGovCoords(gov) {
             if (!gov) return null;
@@ -1291,8 +1355,8 @@
         function assignCoordinates(zone) {
             const coords = getGovCoords(zone.gov);
             if (coords) {
-                const latOffset = (Math.random() - 0.5) * 0.25;
-                const lngOffset = (Math.random() - 0.5) * 0.25;
+                const latOffset = (Math.random() - 0.5) * 0.2;
+                const lngOffset = (Math.random() - 0.5) * 0.2;
                 return { ...zone, lat: coords.lat + latOffset, lng: coords.lng + lngOffset };
             } else {
                 return { ...zone, lat: 34.0 + (Math.random() - 0.5) * 4, lng: 9.0 + (Math.random() - 0.5) * 4 };
@@ -1316,6 +1380,10 @@
             return map[status] || status;
         }
 
+        function zoneHash(zone) {
+            return `${zone.off_count}|${zone.on_count}|${zone.last_report}`;
+        }
+
         // ============================================================
         //  MAP
         // ============================================================
@@ -1329,11 +1397,18 @@
                 attribution: MAP_ATTRIB,
                 maxZoom: 19,
                 minZoom: 3,
+                // Perf: skip fetching intermediate tiles while the user is
+                // actively zooming/panning, and keep a bigger ring of
+                // already-loaded tiles around the viewport so fast pans on
+                // mobile don't show blank tiles.
+                updateWhenZooming: false,
+                updateWhenIdle: true,
+                keepBuffer: 4,
             }).addTo(map);
 
             L.control.zoom({ position: 'topright' }).addTo(map);
             map.dragging.enable();
-            setTimeout(() => map.invalidateSize(), 300);
+            requestAnimationFrame(() => map.invalidateSize());
         }
 
         function getMarkerIcon(status) {
@@ -1388,11 +1463,11 @@
         }
 
         // ============================================================
-        //  PERFORMANT UPDATE FUNCTIONS
+        //  OPTIMIZED UPDATES
         // ============================================================
         function updateMarkers(newZones) {
-            // Remove markers that are no longer present
             const newIds = new Set(newZones.map(z => z.id));
+
             for (const [id, marker] of Object.entries(markers)) {
                 if (!newIds.has(id)) {
                     map.removeLayer(marker);
@@ -1400,28 +1475,63 @@
                 }
             }
 
-            // Add or update markers
             for (const zone of newZones) {
                 if (!zone.lat || !zone.lng || isNaN(zone.lat) || isNaN(zone.lng)) continue;
                 const status = getStatus(zone);
-                const icon = getMarkerIcon(status);
-                const popupHTML = buildPopupHTML(zone);
+                const hash = zoneHash(zone);
 
                 if (markers[zone.id]) {
-                    // Update existing marker
                     const marker = markers[zone.id];
-                    // Update icon if status changed (needs re-creation of icon)
-                    // For simplicity, we update the popup content only (status changes are reflected there)
-                    marker.setPopupContent(popupHTML);
-                    // Optionally update icon if status changed dramatically? Not necessary as popup shows status.
+                    if (marker._popupContentHash !== hash) {
+                        // Only rebuild the icon DOM when the status actually
+                        // flipped (off->on etc.) — this was previously never
+                        // updated at all, leaving stale colored markers.
+                        if (marker._status !== status) {
+                            marker.setIcon(getMarkerIcon(status));
+                            marker._status = status;
+                        }
+                        // Popup content is only rebuilt if it's currently
+                        // closed or the DOM write is cheap; if open, update
+                        // it in place so an actively-viewed popup doesn't
+                        // flicker.
+                        marker.setPopupContent(buildPopupHTML(zone));
+                        marker._popupContentHash = hash;
+                    }
                 } else {
-                    // Create new marker
+                    const icon = getMarkerIcon(status);
                     const marker = L.marker([zone.lat, zone.lng], { icon })
                         .addTo(map)
-                        .bindPopup(popupHTML);
+                        .bindPopup(buildPopupHTML(zone));
+                    marker._popupContentHash = hash;
+                    marker._status = status;
+
+                    // Attach popup open listener to bind button events
+                    marker.on('popupopen', function() {
+                        const popupNode = this._popup._contentNode;
+                        if (!popupNode) return;
+                        const buttons = popupNode.querySelectorAll('.report-btn');
+                        buttons.forEach(btn => {
+                            btn.removeEventListener('click', handlePopupButtonClick);
+                            btn.addEventListener('click', handlePopupButtonClick);
+                        });
+                    });
+
+                    // ---- NEW: close bottom sheet when popup opens ----
+                    marker.on('popupopen', function() {
+                        if (isSheetOpen) closeSheet();
+                    });
+
                     markers[zone.id] = marker;
                 }
             }
+        }
+
+        function handlePopupButtonClick(e) {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            const id = btn.dataset.id;
+            const status = btn.dataset.status || 'off';
+            openReportModal(id, status);
         }
 
         function updateSheet(newZones) {
@@ -1439,19 +1549,14 @@
                 return;
             }
 
-            // Use a document fragment for batch updates
             const fragment = document.createDocumentFragment();
-            // Keep existing items in a map for reuse
             const existingItems = new Map();
-            const children = sheetBody.children;
-            for (let i = 0; i < children.length; i++) {
-                const el = children[i];
-                if (el.dataset && el.dataset.id) {
-                    existingItems.set(el.dataset.id, el);
+            for (const child of sheetBody.children) {
+                if (child.dataset && child.dataset.id) {
+                    existingItems.set(child.dataset.id, child);
                 }
             }
 
-            // Build new list
             for (const zone of filtered) {
                 const status = getStatus(zone);
                 const label = getStatusLabel(status);
@@ -1460,7 +1565,6 @@
 
                 let item = existingItems.get(id);
                 if (item) {
-                    // Update existing item
                     const dot = item.querySelector('.dot');
                     if (dot) dot.className = `dot ${status}`;
                     const nameEl = item.querySelector('.zname');
@@ -1472,19 +1576,17 @@
                         badge.className = `status-badge ${status}`;
                         badge.textContent = label;
                     }
-                    const offCount = item.querySelector('.counts .off');
-                    if (offCount) offCount.textContent = `⬇ ${zone.off_count}`;
-                    const onCount = item.querySelector('.counts .on');
-                    if (onCount) onCount.textContent = `⬆ ${zone.on_count}`;
+                    const offEl = item.querySelector('.counts .off');
+                    if (offEl) offEl.textContent = `⬇ ${zone.off_count}`;
+                    const onEl = item.querySelector('.counts .on');
+                    if (onEl) onEl.textContent = `⬆ ${zone.on_count}`;
                     const timeEl = item.querySelector('.zmeta span:last-child');
                     if (timeEl) {
                         timeEl.innerHTML = `<i class="far fa-clock"></i> ${timeStr}`;
                     }
-                    // Re-bind event listeners? They are attached via delegation, so no need.
                     fragment.appendChild(item);
                     existingItems.delete(id);
                 } else {
-                    // Create new item
                     const div = document.createElement('div');
                     div.className = 'zone-item';
                     div.dataset.id = id;
@@ -1511,7 +1613,6 @@
                   </button>
                 </div>
               `;
-                    // Attach click events (delegated, but we need to attach to buttons)
                     const offBtn = div.querySelector('.btn-off');
                     const onBtn = div.querySelector('.btn-on');
                     offBtn.addEventListener('click', (e) => {
@@ -1534,18 +1635,11 @@
                 }
             }
 
-            // Remove leftover items (zones that are no longer in filtered list)
-            for (const [id, el] of existingItems) {
-                el.remove();
-            }
-
-            // Replace sheet body content with fragment
-            sheetBody.innerHTML = '';
-            sheetBody.appendChild(fragment);
+            sheetBody.replaceChildren(fragment);
         }
 
         // ============================================================
-        //  MAIN REFRESH (optimized)
+        //  MAIN REFRESH
         // ============================================================
         async function refreshData(showLoading = false) {
             if (isRefreshing) return;
@@ -1558,17 +1652,10 @@
 
             const data = await fetchZones();
             if (data) {
-                // Assign coordinates only if zones is empty (first load) or new zones appear
-                const oldIds = new Set(zones.map(z => z.id));
-                const newIds = new Set(data.map(z => z.id));
-                // Check if any new zone needs coordinates
-                const needsCoords = data.some(z => !oldIds.has(z.id));
                 let newZones;
-                if (needsCoords || zones.length === 0) {
-                    // Assign coords to all
+                if (zones.length === 0) {
                     newZones = data.map(zone => assignCoordinates(zone));
                 } else {
-                    // Preserve existing coordinates for existing zones, assign for new ones
                     const coordMap = new Map();
                     for (const z of zones) coordMap.set(z.id, { lat: z.lat, lng: z.lng });
                     newZones = data.map(zone => {
@@ -1581,11 +1668,24 @@
                     });
                 }
 
-                zones = newZones;
-                // Update map and sheet with diff
-                updateMarkers(zones);
-                updateSheet(zones);
-                populateZoneSelect();
+                let changed = false;
+                const newHashes = new Map();
+                for (const z of newZones) {
+                    const h = zoneHash(z);
+                    newHashes.set(z.id, h);
+                    if (!zoneHashes.has(z.id) || zoneHashes.get(z.id) !== h) {
+                        changed = true;
+                    }
+                }
+                if (zoneHashes.size !== newHashes.size) changed = true;
+
+                if (changed) {
+                    zones = newZones;
+                    zoneHashes = newHashes;
+                    updateMarkers(zones);
+                    updateSheet(zones);
+                    populateZoneSelect();
+                }
 
                 if (showLoading) {
                     setTimeout(() => loadingEl.classList.add('hidden'), 300);
@@ -1607,10 +1707,11 @@
         // ============================================================
         function populateZoneSelect() {
             const currentVal = zoneSelect.value;
-            zoneSelect.innerHTML = '<option value="">— Choose zone —</option>';
+            const opts = ['<option value="">— Choose zone —</option>'];
             for (const z of zones) {
-                zoneSelect.innerHTML += `<option value="${z.id}">${z.name} (${z.gov})</option>`;
+                opts.push(`<option value="${z.id}">${z.name} (${z.gov})</option>`);
             }
+            zoneSelect.innerHTML = opts.join('');
             if (currentVal) zoneSelect.value = currentVal;
         }
 
@@ -1629,11 +1730,12 @@
         }
 
         function openReportModal(zoneId = null, presetStatus = null) {
-            zoneSelect.innerHTML = '<option value="">— Choose zone —</option>';
+            const opts = ['<option value="">— Choose zone —</option>'];
             for (const z of zones) {
                 const sel = z.id === zoneId ? 'selected' : '';
-                zoneSelect.innerHTML += `<option value="${z.id}" ${sel}>${z.name} (${z.gov})</option>`;
+                opts.push(`<option value="${z.id}" ${sel}>${z.name} (${z.gov})</option>`);
             }
+            zoneSelect.innerHTML = opts.join('');
             if (zoneId) zoneSelect.value = zoneId;
 
             if (presetStatus && ['off', 'on', 'warning'].includes(presetStatus)) {
@@ -1662,14 +1764,18 @@
         // ============================================================
         //  USER LOCATION
         // ============================================================
+        let isLocating = false;
         function locateUser() {
             if (!navigator.geolocation) {
                 showToast('Geolocation not supported.', 'error');
                 return;
             }
+            if (isLocating) return;
+            isLocating = true;
             showToast('Locating you…', 'info', 1500);
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                    isLocating = false;
                     const { latitude, longitude } = pos.coords;
                     userLocation = { lat: latitude, lng: longitude };
                     if (userMarker) {
@@ -1699,6 +1805,7 @@
                     }
                 },
                 (err) => {
+                    isLocating = false;
                     console.warn('Geolocation error:', err);
                     showToast('Could not get your location. Check permissions.', 'error');
                 }, { enableHighAccuracy: true, timeout: 10000 }
@@ -1780,7 +1887,6 @@
                 return false;
             }
 
-            // Optimistic update
             if (status === 'off') zone.off_count = (zone.off_count || 0) + 1;
             else if (status === 'on') zone.on_count = (zone.on_count || 0) + 1;
             else if (status === 'warning') {
@@ -1788,11 +1894,9 @@
             }
             zone.last_report = new Date().toISOString();
 
-            // Update UI immediately
             updateMarkers(zones);
             updateSheet(zones);
 
-            // Persist
             try {
                 const patchUrl =
                     `https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?slug=eq.${encodeURIComponent(zoneId)}`;
@@ -1833,7 +1937,7 @@
                 return true;
             } catch (err) {
                 console.warn('Report persist error:', err);
-                return true; // still optimistic success
+                return true;
             }
         }
 
@@ -1841,10 +1945,8 @@
         //  EVENT BINDING
         // ============================================================
         function bindEvents() {
-            // Sheet toggle
             sheetHandle.addEventListener('click', toggleSheet);
 
-            // Filter
             document.querySelectorAll('.sheet-actions button').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.sheet-actions button').forEach(b => b.classList.remove(
@@ -1855,7 +1957,6 @@
                 });
             });
 
-            // FAB
             fabReport.addEventListener('click', () => {
                 if (zones.length === 0) {
                     showToast('No zones loaded yet.', 'error');
@@ -1871,7 +1972,6 @@
                 openReportModal();
             });
 
-            // Refresh
             refreshBtn.addEventListener('click', () => {
                 refreshBtn.querySelector('i').classList.add('fa-spin');
                 refreshData(true).finally(() => {
@@ -1879,19 +1979,14 @@
                 });
             });
 
-            // Locate
             locateBtn.addEventListener('click', locateUser);
-
-            // Stats
             statsBtn.addEventListener('click', showStats);
 
-            // Modal close
             modalClose.addEventListener('click', closeReportModal);
             reportModal.addEventListener('click', (e) => {
                 if (e.target === reportModal) closeReportModal();
             });
 
-            // Status options
             statusOpts.forEach(el => {
                 el.addEventListener('click', () => {
                     selectedStatus = el.dataset.value;
@@ -1899,7 +1994,6 @@
                 });
             });
 
-            // Submit report
             submitBtn.addEventListener('click', async () => {
                 const zoneId = zoneSelect.value;
                 if (!zoneId) {
@@ -1917,15 +2011,12 @@
                     const zone = zones.find(z => z.id === zoneId);
                     showToast(`✅ Report submitted for "${zone?.name || zoneId}" (${selectedStatus})`, 'success');
                     closeReportModal();
-                    // No need to refresh full data, optimistic update already applied.
-                    // But to sync with server, we can do a silent refresh later.
-                    // We'll rely on the next poll.
                 } else {
                     showToast('❌ Failed to submit. Please try again.', 'error');
                 }
             });
 
-            // Popup report buttons (delegated)
+            // Fallback for any other buttons
             mapEl.addEventListener('click', (e) => {
                 const btn = e.target.closest('.report-btn');
                 if (btn) {
@@ -1935,7 +2026,6 @@
                 }
             });
 
-            // Keyboard
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') closeReportModal();
             });
@@ -1947,9 +2037,19 @@
         function startPolling() {
             if (pollTimer) clearInterval(pollTimer);
             pollTimer = setInterval(() => {
-                refreshData(false);
+                if (document.visibilityState === 'visible') {
+                    refreshData(false);
+                }
             }, POLL_INTERVAL_MS);
         }
+
+        // Perf: don't burn network/CPU polling a backgrounded tab; refresh
+        // once immediately on return to foreground instead.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                refreshData(false);
+            }
+        });
 
         // ============================================================
         //  INIT
@@ -1965,11 +2065,15 @@
                 if (navigator.geolocation) locateUser();
             }, 1200);
 
+            let resizeRaf = null;
             window.addEventListener('resize', () => {
-                if (map) map.invalidateSize();
-            });
+                if (resizeRaf) cancelAnimationFrame(resizeRaf);
+                resizeRaf = requestAnimationFrame(() => {
+                    if (map) map.invalidateSize();
+                });
+            }, { passive: true });
 
-            console.log('⚡ PowerTracker initialized (performance-optimized)');
+            console.log('⚡ PowerTracker – popup layering fixed');
         }
 
         document.addEventListener('DOMContentLoaded', init);
