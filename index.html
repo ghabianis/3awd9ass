@@ -49,7 +49,6 @@
             --sheet-handle-height: 44px;
         }
 
-        /* No blur on mobile – too heavy */
         html,
         body {
             height: 100%;
@@ -186,7 +185,7 @@
             border: none !important;
         }
 
-        /* ----- MARKERS - simple, no animations ----- */
+        /* ----- MARKERS - simple emoji divs ----- */
         .custom-marker {
             display: flex;
             align-items: center;
@@ -891,6 +890,7 @@
             .fab-report {
                 bottom: 90px;
                 right: 24px;
+                z-index: 1000;
             }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -985,10 +985,11 @@
         const API_URL =
             'https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?select=*';
         const API_KEY = 'sb_publishable_C_7rg0jf6-e925Tji5n-qA_mLYruFUp';
-        const POLL_INTERVAL_MS = 30000; // 30s to reduce updates
+        const POLL_INTERVAL_MS = 30000;
         const MAP_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         const MAP_ATTRIB = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
 
+        // ----- Enhanced coordinate mapping with fallback matching -----
         const GOV_COORDS = {
             'Tunis': { lat: 36.8065, lng: 10.1815 },
             'Ariana': { lat: 36.8601, lng: 10.1934 },
@@ -1014,6 +1015,14 @@
             'Gafsa': { lat: 34.4250, lng: 8.7842 },
             'Tozeur': { lat: 33.9197, lng: 8.1335 },
             'Kébili': { lat: 33.7044, lng: 8.9690 },
+        };
+
+        // Tunisia bounding box (approximate)
+        const TUNISIA_BOUNDS = {
+            latMin: 30.0,
+            latMax: 38.0,
+            lngMin: 7.0,
+            lngMax: 12.0
         };
 
         // ============================================================
@@ -1111,26 +1120,55 @@
         }
 
         // ============================================================
-        //  COORDINATES
+        //  COORDINATE HELPERS (improved)
         // ============================================================
-        function getGovCoords(gov) {
-            if (!gov) return null;
-            const key = Object.keys(GOV_COORDS).find(k => k.toLowerCase() === gov.toLowerCase());
-            if (key) return GOV_COORDS[key];
-            const firstWord = gov.split(/\s/)[0];
-            const key2 = Object.keys(GOV_COORDS).find(k => k.toLowerCase().includes(firstWord.toLowerCase()));
-            return key2 ? GOV_COORDS[key2] : null;
+        // Try to find a matching gov name from the zone's gov or name
+        function findGovKey(govName, zoneName) {
+            const candidates = [govName, zoneName];
+            for (const raw of candidates) {
+                if (!raw) continue;
+                const lower = raw.toLowerCase().trim();
+                // Exact match
+                for (const key of Object.keys(GOV_COORDS)) {
+                    if (key.toLowerCase() === lower) return key;
+                }
+                // Partial match (first word)
+                const firstWord = lower.split(/\s/)[0];
+                for (const key of Object.keys(GOV_COORDS)) {
+                    if (key.toLowerCase().includes(firstWord)) return key;
+                }
+            }
+            return null;
+        }
+
+        function clampToTunisia(lat, lng) {
+            return {
+                lat: Math.min(Math.max(lat, TUNISIA_BOUNDS.latMin), TUNISIA_BOUNDS.latMax),
+                lng: Math.min(Math.max(lng, TUNISIA_BOUNDS.lngMin), TUNISIA_BOUNDS.lngMax)
+            };
         }
 
         function assignCoordinates(zone) {
-            const coords = getGovCoords(zone.gov);
-            if (coords) {
-                const latOffset = (Math.random() - 0.5) * 0.2;
-                const lngOffset = (Math.random() - 0.5) * 0.2;
-                return { ...zone, lat: coords.lat + latOffset, lng: coords.lng + lngOffset };
-            } else {
-                return { ...zone, lat: 34.0 + (Math.random() - 0.5) * 4, lng: 9.0 + (Math.random() - 0.5) * 4 };
+            let coords = null;
+            // First try to get from gov using exact or fuzzy match
+            const govKey = findGovKey(zone.gov, zone.name);
+            if (govKey) {
+                coords = GOV_COORDS[govKey];
             }
+            // If still no match, fallback to center of Tunisia
+            if (!coords) {
+                coords = { lat: 34.0, lng: 9.0 };
+            }
+
+            // Add a small random offset (max ±0.05 deg ≈ 5.5 km) to spread markers
+            const latOffset = (Math.random() - 0.5) * 0.1;
+            const lngOffset = (Math.random() - 0.5) * 0.1;
+            let lat = coords.lat + latOffset;
+            let lng = coords.lng + lngOffset;
+
+            // Clamp to Tunisia bounds to avoid sea
+            const clamped = clampToTunisia(lat, lng);
+            return { ...zone, lat: clamped.lat, lng: clamped.lng };
         }
 
         // ============================================================
@@ -1819,7 +1857,7 @@
             await refreshData(true);
             startPolling();
             setTimeout(() => { if (navigator.geolocation) locateUser(false); }, 1200);
-            console.log('⚡ 3awd9ass – ultra‑optimized');
+            console.log('⚡ 3awd9ass – geo‑fixed');
         }
 
         document.addEventListener('DOMContentLoaded', init);
