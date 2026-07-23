@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch Console</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+
+  <div class="event-manager" style="position:absolute; width:0; height:0; overflow:hidden;">
+    <div id="messages-list"></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">DC</div>
+      Dispatch Console
+    </div>
+    <div class="status-pill">
+      <span class="dot idle" id="status-dot"></span>
+      <span id="status-text">Idle</span>
+    </div>
+  </header>
+
+  <div class="shell">
+
+    <div class="login-wrap" id="login-view">
+      <div class="login-card">
+        <div class="login-glyph">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#8a96a6" stroke-width="1.6">
+            <path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5Z"/>
+            <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M9 22h6"/>
+          </svg>
+        </div>
+        <h1 class="login-title">Connecting to network</h1>
+        <p class="login-sub">Authenticating and loading your channels &amp; talk groups.</p>
+
+        <div class="login-steps">
+          <div class="step-row" data-step="init"><span class="step-icon">·</span><span class="step-label">Initializing SDK</span></div>
+          <div class="step-row" data-step="login"><span class="step-icon">·</span><span class="step-label">Authenticating session</span></div>
+          <div class="step-row" data-step="convos"><span class="step-icon">·</span><span class="step-label">Loading conversations</span></div>
+        </div>
+
+        <button class="retry-btn hidden" id="retry-btn">Retry connection</button>
+      </div>
+    </div>
+
+    <div class="grid hidden" id="dashboard-view">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Conversations</span>
+          <span class="panel-count" id="conv-count">0</span>
+        </div>
+        <div class="conv-list" id="conv-list">
+          <div class="empty"><span class="empty-glyph">— NO ENTRIES —</span>No conversations found.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Talk Groups</span>
+          <span class="panel-count" id="group-count">0</span>
+        </div>
+        <div class="group-list" id="group-list">
+          <div class="empty"><span class="empty-glyph">— NO ENTRIES —</span>No talk groups found.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3 hidden" id="geo-view">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Geolocation Pins</span>
+          <span class="panel-count" id="pin-count">0</span>
+        </div>
+        <div class="pin-list" id="pin-list">
+          <div class="empty"><span class="empty-glyph">— NO PINS —</span>No geolocation pins found.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">User Locations</span>
+          <span class="panel-count" id="geo-user-count">0</span>
+        </div>
+        <div class="geo-list" id="geo-user-list">
+          <div class="empty"><span class="empty-glyph">— NO DATA —</span>No user location data available.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Map Server Config</span>
+          <span class="panel-count" id="map-config-count">0</span>
+        </div>
+        <div class="geo-list" id="map-config-list">
+          <div class="empty"><span class="empty-glyph">— NO CONFIG —</span>No map server configuration found.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel log-panel">
+      <div class="panel-head">
+        <span class="panel-title">Operator Log</span>
+      </div>
+      <div class="log-body mono" id="log-body"></div>
+    </div>
+
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="http://localhost:3000/sdk.js"></script>
+
+  <script>
+    const apiBaseUrl = "https://swapi.teamontherun.com/";
+
+    const statusDot = document.getElementById("status-dot");
+    const statusText = document.getElementById("status-text");
+    const logBody = document.getElementById("log-body");
+    const retryBtn = document.getElementById("retry-btn");
+
+    function setStatus(state, label) {
+      statusDot.className = "dot " + state;
+      statusText.textContent = label;
+    }
+
+    function log(tag, msg, ok) {
+      const line = document.createElement("div");
+      line.className = "log-line" + (ok === true ? " ok" : ok === false ? " err" : "");
+      line.innerHTML = `<span class="tag">[${tag}]</span> ${msg}`;
+      logBody.appendChild(line);
+      logBody.scrollTop = logBody.scrollHeight;
+      console.log(`[${tag}]`, msg);
+    }
+
+    function setStep(name, state) {
+      const row = document.querySelector(`.step-row[data-step="${name}"]`);
+      if (!row) return;
+      row.classList.remove("active", "done", "failed");
+      const icon = row.querySelector(".step-icon");
+      if (state === "active") { row.classList.add("active"); icon.textContent = "›"; }
+      else if (state === "done") { row.classList.add("done"); icon.textContent = "✓"; }
+      else if (state === "failed") { row.classList.add("failed"); icon.textContent = "✕"; }
+    }
+
+    function initials(name) {
+      if (!name) return "?";
+      return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    }
+    
+    // ---------- Main Flow ----------
+    async function runFlow() {
+      retryBtn.classList.add("hidden");
+      setStatus("connecting", "Connecting");
+
+      const SDK =
+        window.webchatSDK ||
+        window.WebChatSDK ||
+        window.STWAccountManager ||
+        window.STWGeolocationManager ||
+        window.STW ||
+        null;
+
+      if (!SDK) {
+        log("BOOT", "SDK not found on window", false);
+        setStatus("error", "SDK not found");
+        setStep("init", "failed");
+        retryBtn.classList.remove("hidden");
+        return;
+      }
+
+      try {
+        // Step 1: Init
+        setStep("init", "active");
+        SDK.STWAccountManager.init(apiBaseUrl);
+        setStep("init", "done");
+        log("INIT", "SDK initialized");
+
+        // Step 2: Login
+        setStep("login", "active");
+        setStatus("connecting", "Authenticating");
+        const loginResult = await SDK.STWAccountManager.login(
+          "21690770350",
+          "ANISghabiEST12341234####@@@@"
+        );
+        setStep("login", "done");
+        log("LOGIN", "Session authenticated", true);
+
+        // Step 3: Groups
+        setStep("groups", "active");
+        setStatus("connecting", "Loading groups");
+        try {
+          const groups = await SDK.STWGeolocationManager.getDisplayGroupList();
+          renderGroups(groups);
+          setStep("groups", "done");
+          log("GROUPS", `Loaded ${(groups && groups.length) || 0} talk group(s)`, true);
+        } catch (e) {
+          setStep("groups", "failed");
+          log("GROUPS", "Failed to load: " + (e && e.reason || e), false);
+        }
+
+        // Step 4: Conversations
+        setStep("convos", "active");
+        setStatus("connecting", "Loading conversations");
+        try {
+          let conversations = [];
+          if (SDK.STWConversationManager) {
+            if (typeof SDK.STWConversationManager.getConversationList === 'function') {
+              conversations = await SDK.STWConversationManager.getConversationList(0, 50, false);
+            } else if (typeof SDK.STWConversationManager.getAllConversations === 'function') {
+              conversations = await SDK.STWConversationManager.getAllConversations();
+            } else if (typeof SDK.STWConversationManager.getConversations === 'function') {
+              conversations = await SDK.STWConversationManager.getConversations();
+            } else {
+              const methods = Object.keys(SDK.STWConversationManager);
+              const possibleMethods = methods.filter(m => 
+                m.toLowerCase().includes('conversation') && 
+                typeof SDK.STWConversationManager[m] === 'function'
+              );
+              if (possibleMethods.length > 0) {
+                conversations = await SDK.STWConversationManager[possibleMethods[0]]();
+              }
+            }
+          }
+          renderConversations(conversations);
+          setStep("convos", "done");
+          const count = (conversations && (Array.isArray(conversations) ? conversations.length : Object.keys(conversations).length)) || 0;
+          log("CONVOS", `Loaded ${count} conversation(s)`, true);
+        } catch (e) {
+          setStep("convos", "failed");
+          log("CONVOS", "Failed to load: " + (e && e.reason || e.message || e), false);
+        }
+
+        setStep("geolocation", "active");
+        setStatus("connecting", "Loading geolocation data");
+        
+        const geoManager = SDK.STWGeolocationManager;
+
+        try {
+          const pins = await geoManager.getPinList();
+          renderPins(pins);
+          log("PINS", `Loaded ${(pins && pins.length) || 0} geolocation pin(s)`, true);
+        } catch (e) {
+          log("PINS", "Failed to load pins: " + (e && e.reason || e), false);
+        }
+
+        try {
+          const contacts = await geoManager.getDispatcherRightsContactList(
+            SDK.DISPATCHER_FILTER.SINGLE,
+            0,
+            20
+          );
+          
+          if (contacts && contacts.length > 0) {
+            log("USER-GEO", `Found ${contacts.length} contacts, fetching geolocation data...`, true);
+            const geoData = await geoManager.getUsersGeolocationData(contacts);
+            console.log("Raw geolocation data:", geoData);
+            renderUserGeolocation(geoData);
+            const count = (geoData && (Array.isArray(geoData) ? geoData.length : Object.keys(geoData).length)) || 0;
+            log("USER-GEO", `Loaded geolocation for ${count} user(s)`, true);
+          } else {
+            log("USER-GEO", "No contacts found for geolocation data", false);
+          }
+        } catch (e) {
+          log("USER-GEO", "Failed to load user geolocation: " + (e && e.reason || e.message || e), false);
+          console.error("User geolocation error:", e);
+        }
+
+        try {
+          const mapConfig = await geoManager.getMapServerConfiguration();
+          console.log("Raw map config:", mapConfig);
+          renderMapConfig(mapConfig);
+          const count = (mapConfig && (Array.isArray(mapConfig) ? mapConfig.length : Object.keys(mapConfig).length)) || 0;
+          log("MAP-CONFIG", `Loaded ${count} map server configuration(s)`, true);
+        } catch (e) {
+          log("MAP-CONFIG", "Failed to load map config: " + (e && e.reason || e), false);
+          console.error("Map config error:", e);
+        }
+
+        setStep("geolocation", "done");
+        log("GEOLOCATION", "All geolocation data loaded", true);
+
+        setStatus("live", "Live");
+        showDashboard();
+
+      } catch (err) {
+        setStep("login", "failed");
+        setStatus("error", "Connection failed");
+        log("LOGIN", "Failed: " + (err && err.reason || err.message || err), false);
+        retryBtn.classList.remove("hidden");
+      }
+    }
+
+    retryBtn.addEventListener("click", runFlow);
+    window.onload = runFlow;
+  </script>
+
+</body>
+</html>
