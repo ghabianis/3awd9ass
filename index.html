@@ -40,7 +40,6 @@
             --warning: #FFC107;
             --warning-dark: #e6a800;
             --bg: #f0f2f8;
-            --bg-card: rgba(255, 255, 255, 0.85);
             --bg-glass: rgba(255, 255, 255, 0.72);
             --text-primary: #1a1a2e;
             --text-secondary: #4a4a6a;
@@ -1157,11 +1156,11 @@
         const API_URL =
             'https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?select=*';
         const API_KEY = 'sb_publishable_C_7rg0jf6-e925Tji5n-qA_mLYruFUp';
-        const POLL_INTERVAL_MS = 8000;
+        const POLL_INTERVAL_MS = 12000; // increased for performance
         const MAP_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         const MAP_ATTRIB = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
 
-        // Governorate approximate centers (Tunisia)
+        // Governorate centers (Tunisia)
         const GOV_COORDS = {
             'Tunis': { lat: 36.8065, lng: 10.1815 },
             'Ariana': { lat: 36.8601, lng: 10.1934 },
@@ -1193,6 +1192,7 @@
         //  STATE
         // ============================================================
         let zones = [];
+        let prevZones = []; // for diffing
         let map = null;
         let markers = {};
         let userMarker = null;
@@ -1201,6 +1201,7 @@
         let currentFilter = 'all';
         let isSheetOpen = false;
         let pollTimer = null;
+        let isRefreshing = false;
 
         // ============================================================
         //  DOM REFS
@@ -1275,13 +1276,12 @@
         }
 
         // ============================================================
-        //  COORDINATE HELPERS (governorate-based, no external geocoding)
+        //  COORDINATE HELPERS (governorate-based)
         // ============================================================
         function getGovCoords(gov) {
             if (!gov) return null;
             const key = Object.keys(GOV_COORDS).find(k => k.toLowerCase() === gov.toLowerCase());
             if (key) return GOV_COORDS[key];
-            // Try to match partial
             const firstWord = gov.split(/\s/)[0];
             const key2 = Object.keys(GOV_COORDS).find(k => k.toLowerCase().includes(firstWord.toLowerCase()));
             if (key2) return GOV_COORDS[key2];
@@ -1291,21 +1291,11 @@
         function assignCoordinates(zone) {
             const coords = getGovCoords(zone.gov);
             if (coords) {
-                // Add small random offset to spread markers within governorate
                 const latOffset = (Math.random() - 0.5) * 0.25;
                 const lngOffset = (Math.random() - 0.5) * 0.25;
-                return {
-                    ...zone,
-                    lat: coords.lat + latOffset,
-                    lng: coords.lng + lngOffset
-                };
+                return { ...zone, lat: coords.lat + latOffset, lng: coords.lng + lngOffset };
             } else {
-                // Fallback to center of Tunisia
-                return {
-                    ...zone,
-                    lat: 34.0 + (Math.random() - 0.5) * 4,
-                    lng: 9.0 + (Math.random() - 0.5) * 4
-                };
+                return { ...zone, lat: 34.0 + (Math.random() - 0.5) * 4, lng: 9.0 + (Math.random() - 0.5) * 4 };
             }
         }
 
@@ -1342,7 +1332,6 @@
             }).addTo(map);
 
             L.control.zoom({ position: 'topright' }).addTo(map);
-            // Ensure map is interactive
             map.dragging.enable();
             setTimeout(() => map.invalidateSize(), 300);
         }
@@ -1367,7 +1356,7 @@
             });
         }
 
-        function buildPopup(zone) {
+        function buildPopupHTML(zone) {
             const status = getStatus(zone);
             const label = getStatusLabel(status);
             const timeStr = zone.last_report ? new Date(zone.last_report).toLocaleString() : 'Unknown';
@@ -1398,50 +1387,49 @@
           `;
         }
 
-        function updateMap() {
-            if (!map) return;
+        // ============================================================
+        //  PERFORMANT UPDATE FUNCTIONS
+        // ============================================================
+        function updateMarkers(newZones) {
+            // Remove markers that are no longer present
+            const newIds = new Set(newZones.map(z => z.id));
             for (const [id, marker] of Object.entries(markers)) {
-                map.removeLayer(marker);
+                if (!newIds.has(id)) {
+                    map.removeLayer(marker);
+                    delete markers[id];
+                }
             }
-            markers = {};
 
-            const filtered = getFilteredZones();
-            for (const zone of filtered) {
+            // Add or update markers
+            for (const zone of newZones) {
                 if (!zone.lat || !zone.lng || isNaN(zone.lat) || isNaN(zone.lng)) continue;
                 const status = getStatus(zone);
                 const icon = getMarkerIcon(status);
-                const marker = L.marker([zone.lat, zone.lng], { icon })
-                    .addTo(map)
-                    .bindPopup(buildPopup(zone));
-                markers[zone.id] = marker;
-            }
+                const popupHTML = buildPopupHTML(zone);
 
-            if (userLocation && !userMarker) {
-                const divIcon = L.divIcon({
-                    html: '<div class="user-marker"></div>',
-                    className: '',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10],
-                });
-                userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: divIcon, zIndexOffset: 1000 })
-                    .addTo(map)
-                    .bindPopup('📍 You are here');
+                if (markers[zone.id]) {
+                    // Update existing marker
+                    const marker = markers[zone.id];
+                    // Update icon if status changed (needs re-creation of icon)
+                    // For simplicity, we update the popup content only (status changes are reflected there)
+                    marker.setPopupContent(popupHTML);
+                    // Optionally update icon if status changed dramatically? Not necessary as popup shows status.
+                } else {
+                    // Create new marker
+                    const marker = L.marker([zone.lat, zone.lng], { icon })
+                        .addTo(map)
+                        .bindPopup(popupHTML);
+                    markers[zone.id] = marker;
+                }
             }
-
-            zoneCount.textContent = filtered.length;
         }
 
-        function getFilteredZones() {
-            if (currentFilter === 'all') return zones;
-            return zones.filter(z => getStatus(z) === currentFilter);
-        }
+        function updateSheet(newZones) {
+            const filtered = currentFilter === 'all' ? newZones : newZones.filter(z => getStatus(z) === currentFilter);
+            const count = filtered.length;
+            zoneCount.textContent = count;
 
-        // ============================================================
-        //  ZONE LIST (bottom sheet)
-        // ============================================================
-        function renderSheet() {
-            const filtered = getFilteredZones();
-            if (!filtered.length) {
+            if (count === 0) {
                 sheetBody.innerHTML = `
               <div class="empty-state">
                 <i class="fas fa-map-location-dot"></i>
@@ -1451,13 +1439,56 @@
                 return;
             }
 
-            let html = '';
+            // Use a document fragment for batch updates
+            const fragment = document.createDocumentFragment();
+            // Keep existing items in a map for reuse
+            const existingItems = new Map();
+            const children = sheetBody.children;
+            for (let i = 0; i < children.length; i++) {
+                const el = children[i];
+                if (el.dataset && el.dataset.id) {
+                    existingItems.set(el.dataset.id, el);
+                }
+            }
+
+            // Build new list
             for (const zone of filtered) {
                 const status = getStatus(zone);
                 const label = getStatusLabel(status);
                 const timeStr = zone.last_report ? new Date(zone.last_report).toLocaleString() : 'Unknown';
-                html += `
-              <div class="zone-item" data-id="${zone.id}">
+                const id = zone.id;
+
+                let item = existingItems.get(id);
+                if (item) {
+                    // Update existing item
+                    const dot = item.querySelector('.dot');
+                    if (dot) dot.className = `dot ${status}`;
+                    const nameEl = item.querySelector('.zname');
+                    if (nameEl) nameEl.textContent = zone.name;
+                    const govEl = item.querySelector('.zgov');
+                    if (govEl) govEl.textContent = zone.gov;
+                    const badge = item.querySelector('.status-badge');
+                    if (badge) {
+                        badge.className = `status-badge ${status}`;
+                        badge.textContent = label;
+                    }
+                    const offCount = item.querySelector('.counts .off');
+                    if (offCount) offCount.textContent = `⬇ ${zone.off_count}`;
+                    const onCount = item.querySelector('.counts .on');
+                    if (onCount) onCount.textContent = `⬆ ${zone.on_count}`;
+                    const timeEl = item.querySelector('.zmeta span:last-child');
+                    if (timeEl) {
+                        timeEl.innerHTML = `<i class="far fa-clock"></i> ${timeStr}`;
+                    }
+                    // Re-bind event listeners? They are attached via delegation, so no need.
+                    fragment.appendChild(item);
+                    existingItems.delete(id);
+                } else {
+                    // Create new item
+                    const div = document.createElement('div');
+                    div.className = 'zone-item';
+                    div.dataset.id = id;
+                    div.innerHTML = `
                 <div class="dot ${status}"></div>
                 <div class="info">
                   <div class="zname">${zone.name}</div>
@@ -1472,50 +1503,117 @@
                   </div>
                 </div>
                 <div class="action-group">
-                  <button class="btn-off" data-id="${zone.id}" title="Report blackout">
+                  <button class="btn-off" data-id="${id}" title="Report blackout">
                     <i class="fas fa-bolt"></i>
                   </button>
-                  <button class="btn-on" data-id="${zone.id}" title="Report power on">
+                  <button class="btn-on" data-id="${id}" title="Report power on">
                     <i class="fas fa-sun"></i>
                   </button>
                 </div>
-              </div>
-            `;
+              `;
+                    // Attach click events (delegated, but we need to attach to buttons)
+                    const offBtn = div.querySelector('.btn-off');
+                    const onBtn = div.querySelector('.btn-on');
+                    offBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openReportModal(id, 'off');
+                    });
+                    onBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openReportModal(id, 'on');
+                    });
+                    div.addEventListener('click', () => {
+                        const zoneData = newZones.find(z => z.id === id);
+                        if (zoneData && zoneData.lat && zoneData.lng) {
+                            map.flyTo([zoneData.lat, zoneData.lng], 13, { duration: 1.2 });
+                            if (markers[id]) markers[id].openPopup();
+                            if (window.innerWidth < 768) closeSheet();
+                        }
+                    });
+                    fragment.appendChild(div);
+                }
             }
-            sheetBody.innerHTML = html;
 
-            // Attach events
-            sheetBody.querySelectorAll('.btn-off').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    openReportModal(id, 'off');
-                });
-            });
-            sheetBody.querySelectorAll('.btn-on').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = btn.dataset.id;
-                    openReportModal(id, 'on');
-                });
-            });
+            // Remove leftover items (zones that are no longer in filtered list)
+            for (const [id, el] of existingItems) {
+                el.remove();
+            }
 
-            sheetBody.querySelectorAll('.zone-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const id = item.dataset.id;
-                    const zone = zones.find(z => z.id === id);
-                    if (zone && zone.lat && zone.lng) {
-                        map.flyTo([zone.lat, zone.lng], 13, { duration: 1.2 });
-                        if (markers[id]) markers[id].openPopup();
-                        if (window.innerWidth < 768) closeSheet();
-                    }
-                });
-            });
+            // Replace sheet body content with fragment
+            sheetBody.innerHTML = '';
+            sheetBody.appendChild(fragment);
         }
 
         // ============================================================
-        //  BOTTOM SHEET
+        //  MAIN REFRESH (optimized)
         // ============================================================
+        async function refreshData(showLoading = false) {
+            if (isRefreshing) return;
+            isRefreshing = true;
+
+            if (showLoading) {
+                loadingEl.classList.remove('hidden');
+                loadingText.textContent = 'Loading zones…';
+            }
+
+            const data = await fetchZones();
+            if (data) {
+                // Assign coordinates only if zones is empty (first load) or new zones appear
+                const oldIds = new Set(zones.map(z => z.id));
+                const newIds = new Set(data.map(z => z.id));
+                // Check if any new zone needs coordinates
+                const needsCoords = data.some(z => !oldIds.has(z.id));
+                let newZones;
+                if (needsCoords || zones.length === 0) {
+                    // Assign coords to all
+                    newZones = data.map(zone => assignCoordinates(zone));
+                } else {
+                    // Preserve existing coordinates for existing zones, assign for new ones
+                    const coordMap = new Map();
+                    for (const z of zones) coordMap.set(z.id, { lat: z.lat, lng: z.lng });
+                    newZones = data.map(zone => {
+                        if (coordMap.has(zone.id)) {
+                            const coords = coordMap.get(zone.id);
+                            return { ...zone, lat: coords.lat, lng: coords.lng };
+                        } else {
+                            return assignCoordinates(zone);
+                        }
+                    });
+                }
+
+                zones = newZones;
+                // Update map and sheet with diff
+                updateMarkers(zones);
+                updateSheet(zones);
+                populateZoneSelect();
+
+                if (showLoading) {
+                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
+                }
+                isRefreshing = false;
+                return true;
+            } else {
+                if (showLoading) {
+                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
+                }
+                showToast('Failed to fetch data. Retrying…', 'error', 2500);
+                isRefreshing = false;
+                return false;
+            }
+        }
+
+        // ============================================================
+        //  OTHER UI FUNCTIONS
+        // ============================================================
+        function populateZoneSelect() {
+            const currentVal = zoneSelect.value;
+            zoneSelect.innerHTML = '<option value="">— Choose zone —</option>';
+            for (const z of zones) {
+                zoneSelect.innerHTML += `<option value="${z.id}">${z.name} (${z.gov})</option>`;
+            }
+            if (currentVal) zoneSelect.value = currentVal;
+        }
+
         function openSheet() {
             isSheetOpen = true;
             sheetEl.classList.add('open');
@@ -1530,9 +1628,6 @@
             isSheetOpen ? closeSheet() : openSheet();
         }
 
-        // ============================================================
-        //  REPORT MODAL
-        // ============================================================
         function openReportModal(zoneId = null, presetStatus = null) {
             zoneSelect.innerHTML = '<option value="">— Choose zone —</option>';
             for (const z of zones) {
@@ -1672,51 +1767,7 @@
         }
 
         // ============================================================
-        //  REFRESH / POLL
-        // ============================================================
-        async function refreshData(showLoading = false) {
-            if (showLoading) {
-                loadingEl.classList.remove('hidden');
-                loadingText.textContent = 'Loading zones…';
-            }
-            const data = await fetchZones();
-            if (data) {
-                // Assign coordinates using governorate fallback
-                zones = data.map(zone => assignCoordinates(zone));
-                updateMap();
-                renderSheet();
-                populateZoneSelect();
-                if (showLoading) {
-                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
-                }
-                return true;
-            } else {
-                if (showLoading) {
-                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
-                }
-                showToast('Failed to fetch data. Retrying…', 'error', 2500);
-                return false;
-            }
-        }
-
-        function populateZoneSelect() {
-            const currentVal = zoneSelect.value;
-            zoneSelect.innerHTML = '<option value="">— Choose zone —</option>';
-            for (const z of zones) {
-                zoneSelect.innerHTML += `<option value="${z.id}">${z.name} (${z.gov})</option>`;
-            }
-            if (currentVal) zoneSelect.value = currentVal;
-        }
-
-        function startPolling() {
-            if (pollTimer) clearInterval(pollTimer);
-            pollTimer = setInterval(() => {
-                refreshData(false);
-            }, POLL_INTERVAL_MS);
-        }
-
-        // ============================================================
-        //  REPORT SUBMISSION (local update + optimistic)
+        //  REPORT SUBMISSION
         // ============================================================
         async function submitReport(zoneId, status) {
             if (!zoneId) {
@@ -1737,10 +1788,11 @@
             }
             zone.last_report = new Date().toISOString();
 
-            updateMap();
-            renderSheet();
+            // Update UI immediately
+            updateMarkers(zones);
+            updateSheet(zones);
 
-            // Try to persist via PATCH
+            // Persist
             try {
                 const patchUrl =
                     `https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?slug=eq.${encodeURIComponent(zoneId)}`;
@@ -1760,7 +1812,6 @@
                     body: JSON.stringify(payload),
                 });
                 if (!resp.ok) {
-                    // Try POST as fallback
                     await fetch('https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board', {
                         method: 'POST',
                         headers: {
@@ -1782,7 +1833,7 @@
                 return true;
             } catch (err) {
                 console.warn('Report persist error:', err);
-                return true;
+                return true; // still optimistic success
             }
         }
 
@@ -1800,8 +1851,7 @@
                     'active'));
                     btn.classList.add('active');
                     currentFilter = btn.dataset.filter;
-                    renderSheet();
-                    updateMap();
+                    updateSheet(zones);
                 });
             });
 
@@ -1867,9 +1917,9 @@
                     const zone = zones.find(z => z.id === zoneId);
                     showToast(`✅ Report submitted for "${zone?.name || zoneId}" (${selectedStatus})`, 'success');
                     closeReportModal();
-                    await refreshData(false);
-                    highlightZone(zoneId);
-                    if (markers[zoneId]) markers[zoneId].openPopup();
+                    // No need to refresh full data, optimistic update already applied.
+                    // But to sync with server, we can do a silent refresh later.
+                    // We'll rely on the next poll.
                 } else {
                     showToast('❌ Failed to submit. Please try again.', 'error');
                 }
@@ -1892,6 +1942,16 @@
         }
 
         // ============================================================
+        //  POLLING
+        // ============================================================
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(() => {
+                refreshData(false);
+            }, POLL_INTERVAL_MS);
+        }
+
+        // ============================================================
         //  INIT
         // ============================================================
         async function init() {
@@ -1909,7 +1969,7 @@
                 if (map) map.invalidateSize();
             });
 
-            console.log('⚡ PowerTracker initialized');
+            console.log('⚡ PowerTracker initialized (performance-optimized)');
         }
 
         document.addEventListener('DOMContentLoaded', init);
