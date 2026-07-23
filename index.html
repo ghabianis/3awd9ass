@@ -5,25 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>⚡ 3awd9ass — Live Blackout Map</title>
 
-    <!-- Preload critical font (Inter) as WOFF2 -->
+    <!-- Preload critical font -->
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7W0Q5n-wU.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
 
-    <!-- Leaflet CSS + JS with defer -->
+    <!-- Leaflet CSS + JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 
-    <!-- Perf: warm up connections -->
+    <!-- Preconnect to tile servers -->
     <link rel="preconnect" href="https://a.tile.openstreetmap.org" />
     <link rel="preconnect" href="https://b.tile.openstreetmap.org" />
     <link rel="preconnect" href="https://c.tile.openstreetmap.org" />
     <link rel="preconnect" href="https://njfulpklvqezflxiozhn.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
 
     <style>
-        /* ----- RESET & BASE ----- */
+        /* ----- RESET & BASE (ultra‑light) ----- */
         *,
         *::before,
         *::after {
@@ -35,68 +34,32 @@
         :root {
             --primary: #6C63FF;
             --primary-dark: #5a52d6;
-            --primary-light: #8a83ff;
-            --primary-glow: rgba(108, 99, 255, 0.3);
             --danger: #FF6B6B;
-            --danger-dark: #e55a5a;
             --success: #4CAF50;
-            --success-dark: #388E3C;
             --warning: #FFC107;
-            --warning-dark: #e6a800;
             --bg: #f0f2f8;
-            --bg-glass: rgba(255, 255, 255, 0.72);
             --text-primary: #1a1a2e;
             --text-secondary: #4a4a6a;
             --text-muted: #8888aa;
             --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.06);
             --shadow-md: 0 8px 40px rgba(0, 0, 0, 0.10);
-            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
             --radius-sm: 12px;
-            --radius-md: 18px;
-            --radius-lg: 28px;
             --radius-full: 9999px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --header-height: 60px;
             --sheet-handle-height: 44px;
-            --blur-strength: 18px;
         }
 
-        /* Mobile-first smaller blur for GPU */
-        @media (max-width: 600px) {
-            :root {
-                --blur-strength: 10px;
-            }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            :root {
-                --blur-strength: 6px;
-            }
-        }
-
+        /* No blur on mobile – too heavy */
         html,
         body {
             height: 100%;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text-primary);
             overscroll-behavior: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ----- SCROLLBAR ----- */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-light);
-            border-radius: 20px;
-        }
-
-        /* ----- APP SHELL ----- */
         #app {
             display: flex;
             flex-direction: column;
@@ -112,14 +75,11 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 16px;
-            background: var(--bg-glass);
-            backdrop-filter: blur(var(--blur-strength)) saturate(1.3);
-            -webkit-backdrop-filter: blur(var(--blur-strength)) saturate(1.3);
+            background: rgba(255, 255, 255, 0.9);
             border-bottom: 1px solid rgba(255, 255, 255, 0.5);
             z-index: 20;
             flex-shrink: 0;
             min-height: var(--header-height);
-            will-change: transform;
             contain: layout style paint;
         }
         .app-header .brand {
@@ -128,7 +88,6 @@
             gap: 10px;
             font-weight: 700;
             font-size: 1.1rem;
-            letter-spacing: -0.3px;
         }
         .app-header .brand .icon {
             width: 34px;
@@ -139,20 +98,8 @@
             align-items: center;
             justify-content: center;
             color: #fff;
-            font-size: 1rem;
-            box-shadow: 0 4px 12px var(--primary-glow);
+            font-size: 1.2rem;
             flex-shrink: 0;
-        }
-        .app-header .brand .icon svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-        }
-        .app-header .brand span {
-            background: linear-gradient(135deg, var(--text-primary), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
         .header-actions {
             display: flex;
@@ -165,13 +112,11 @@
             height: 36px;
             border: none;
             border-radius: var(--radius-full);
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: rgba(255, 255, 255, 0.8);
             color: var(--text-secondary);
-            font-size: 0.95rem;
+            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.15s ease, background 0.15s ease;
+            transition: transform 0.1s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -179,17 +124,8 @@
             will-change: transform;
             contain: layout style paint;
         }
-        .header-actions button:hover {
-            background: rgba(255, 255, 255, 0.9);
-            transform: scale(1.05);
-        }
         .header-actions button:active {
             transform: scale(0.92);
-        }
-        .header-actions button svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
         }
         .header-actions .badge-dot {
             position: relative;
@@ -197,30 +133,16 @@
         .header-actions .badge-dot::after {
             content: '';
             position: absolute;
-            top: 5px;
-            right: 5px;
+            top: 4px;
+            right: 4px;
             width: 8px;
             height: 8px;
             background: var(--danger);
             border-radius: 50%;
             border: 2px solid #fff;
-            animation: pulse-dot 2s infinite;
-            will-change: transform, opacity;
-            contain: strict;
-        }
-        @keyframes pulse-dot {
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.5);
-                opacity: 0.5;
-            }
         }
 
-        /* ----- MAP CONTAINER ----- */
+        /* ----- MAP ----- */
         .map-wrapper {
             flex: 1;
             position: relative;
@@ -234,18 +156,12 @@
             background: #dde2ed;
         }
 
-        /* ----- POPUP LAYERING ----- */
-        .leaflet-popup {
-            z-index: 1000 !important;
-        }
+        /* ----- POPUP ----- */
         .leaflet-popup-content-wrapper {
-            z-index: 1001 !important;
             border-radius: var(--radius-sm) !important;
-            box-shadow: var(--shadow-md) !important;
+            box-shadow: var(--shadow-sm) !important;
             padding: 0 !important;
             background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .leaflet-popup-content {
@@ -267,65 +183,49 @@
             background: rgba(255, 255, 255, 0.9) !important;
             color: var(--text-primary) !important;
             font-weight: 600 !important;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
             border: none !important;
         }
-        .leaflet-control-zoom a:hover {
-            background: #fff !important;
-        }
 
-        /* ----- CUSTOM MARKERS - SVG based with SMIL ----- */
+        /* ----- MARKERS - simple, no animations ----- */
         .custom-marker {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: 3px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-            transition: transform 0.15s ease;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease;
             cursor: pointer;
             position: relative;
-            contain: layout style paint;
+            contain: strict;
             will-change: transform;
-            background: var(--status-bg, #9e9e9e);
+            background: #9e9e9e;
             color: #fff;
         }
         .custom-marker:hover {
-            transform: scale(1.15);
+            transform: scale(1.1);
         }
         .custom-marker.marker-on {
-            --status-bg: var(--success);
+            background: var(--success);
         }
         .custom-marker.marker-off {
-            --status-bg: var(--danger);
-            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.55);
+            background: var(--danger);
+            box-shadow: 0 2px 16px rgba(255, 107, 107, 0.5);
         }
         .custom-marker.marker-warning {
-            --status-bg: var(--warning);
+            background: var(--warning);
         }
         .custom-marker.marker-unknown {
-            --status-bg: #9e9e9e;
+            background: #9e9e9e;
         }
-        .custom-marker svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-        .custom-marker .pulse-ring-svg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        .custom-marker .marker-emoji {
             pointer-events: none;
-        }
-        .custom-marker .pulse-ring-svg circle {
-            fill: none;
-            stroke: rgba(255, 107, 107, 0.4);
-            stroke-width: 2;
+            line-height: 1;
         }
 
         .user-marker {
@@ -334,31 +234,11 @@
             background: var(--primary);
             border: 3px solid #fff;
             border-radius: 50%;
-            box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.25);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.3);
             position: relative;
         }
-        .user-marker::after {
-            content: '';
-            position: absolute;
-            inset: -10px;
-            border-radius: 50%;
-            border: 2px solid rgba(108, 99, 255, 0.35);
-            animation: user-ring-pulse 2s infinite;
-            will-change: transform, opacity;
-            contain: strict;
-            pointer-events: none;
-        }
-        @keyframes user-ring-pulse {
-            0% {
-                transform: scale(0.6);
-                opacity: 0.8;
-            }
-            100% {
-                transform: scale(1.4);
-                opacity: 0;
-            }
-        }
 
+        /* ----- POPUP ----- */
         .popup-zone {
             display: flex;
             flex-direction: column;
@@ -391,24 +271,19 @@
         }
         .popup-zone .status-badge.on {
             background: rgba(76, 175, 80, 0.15);
-            color: var(--success-dark);
+            color: var(--success);
         }
         .popup-zone .status-badge.off {
             background: rgba(255, 107, 107, 0.15);
-            color: var(--danger-dark);
+            color: var(--danger);
         }
         .popup-zone .status-badge.warning {
             background: rgba(255, 193, 7, 0.15);
-            color: var(--warning-dark);
+            color: var(--warning);
         }
         .popup-zone .status-badge.unknown {
             background: rgba(0, 0, 0, 0.05);
             color: var(--text-muted);
-        }
-        .popup-zone .status-badge svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
         }
         .popup-zone .counts {
             font-size: 0.7rem;
@@ -429,12 +304,6 @@
             color: var(--text-muted);
             margin-top: 2px;
         }
-        .popup-zone .time svg {
-            width: 12px;
-            height: 12px;
-            fill: currentColor;
-            vertical-align: middle;
-        }
         .popup-zone .report-btn {
             margin-top: 8px;
             padding: 6px 14px;
@@ -445,18 +314,13 @@
             font-weight: 600;
             font-size: 0.75rem;
             cursor: pointer;
-            transition: transform 0.15s ease, background 0.15s ease;
+            transition: transform 0.1s ease, background 0.1s ease;
             width: fit-content;
-            pointer-events: auto;
             touch-action: manipulation;
             will-change: transform;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-        }
-        .popup-zone .report-btn:hover {
-            background: var(--danger-dark);
-            transform: scale(1.04);
         }
         .popup-zone .report-btn:active {
             transform: scale(0.94);
@@ -464,16 +328,8 @@
         .popup-zone .report-btn.report-on {
             background: var(--success);
         }
-        .popup-zone .report-btn.report-on:hover {
-            background: var(--success-dark);
-        }
-        .popup-zone .report-btn svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
 
-        /* ----- BOTTOM SHEET - GPU-accelerated ----- */
+        /* ----- BOTTOM SHEET (no blur) ----- */
         .bottom-sheet {
             position: absolute;
             bottom: 0;
@@ -481,12 +337,10 @@
             right: 0;
             z-index: 15;
             max-height: 55vh;
-            background: var(--bg-glass);
-            backdrop-filter: blur(var(--blur-strength)) saturate(1.4);
-            -webkit-backdrop-filter: blur(var(--blur-strength)) saturate(1.4);
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-            box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.10);
-            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
+            transition: transform 0.35s ease;
             transform: translateY(calc(100% - var(--sheet-handle-height)));
             overflow: hidden;
             border-top: 1px solid rgba(255, 255, 255, 0.5);
@@ -505,17 +359,12 @@
             height: var(--sheet-handle-height);
             align-items: center;
             touch-action: manipulation;
-            contain: layout style paint;
         }
         .bottom-sheet .sheet-handle .bar {
             width: 48px;
             height: 5px;
             background: rgba(0, 0, 0, 0.18);
             border-radius: 20px;
-            transition: background 0.2s ease;
-        }
-        .bottom-sheet .sheet-handle:hover .bar {
-            background: rgba(0, 0, 0, 0.30);
         }
         .sheet-header {
             display: flex;
@@ -523,7 +372,6 @@
             justify-content: space-between;
             padding: 0 16px 8px;
             flex-shrink: 0;
-            contain: layout style paint;
         }
         .sheet-header h3 {
             font-size: 0.95rem;
@@ -531,11 +379,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-        .sheet-header h3 svg {
-            width: 18px;
-            height: 18px;
-            fill: var(--primary);
         }
         .sheet-header h3 .count {
             font-weight: 400;
@@ -559,19 +402,12 @@
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: background 0.15s ease, color 0.15s ease;
+            transition: background 0.1s ease;
             touch-action: manipulation;
-            will-change: transform;
         }
         .sheet-header .sheet-actions button.active {
             background: var(--primary);
             color: #fff;
-        }
-        .sheet-header .sheet-actions button:hover {
-            background: rgba(0, 0, 0, 0.08);
-        }
-        .sheet-header .sheet-actions button.active:hover {
-            background: var(--primary-dark);
         }
 
         .sheet-body {
@@ -591,12 +427,10 @@
             align-items: center;
             gap: 12px;
             padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background: rgba(255, 255, 255, 0.8);
             border-radius: var(--radius-sm);
             border: 1px solid rgba(255, 255, 255, 0.7);
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+            transition: background 0.1s ease, transform 0.1s ease;
             cursor: pointer;
             contain: layout style paint;
             touch-action: manipulation;
@@ -611,7 +445,6 @@
             border-radius: 50%;
             flex-shrink: 0;
             border: 2px solid rgba(255, 255, 255, 0.6);
-            will-change: transform;
         }
         .sheet-body .zone-item .dot.on {
             background: var(--success);
@@ -657,26 +490,18 @@
             letter-spacing: 0.3px;
             padding: 0 10px;
             border-radius: var(--radius-full);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .sheet-body .zone-item .info .zmeta .status-badge svg {
-            width: 12px;
-            height: 12px;
-            fill: currentColor;
         }
         .sheet-body .zone-item .info .zmeta .status-badge.on {
             background: rgba(76, 175, 80, 0.15);
-            color: var(--success-dark);
+            color: var(--success);
         }
         .sheet-body .zone-item .info .zmeta .status-badge.off {
             background: rgba(255, 107, 107, 0.15);
-            color: var(--danger-dark);
+            color: var(--danger);
         }
         .sheet-body .zone-item .info .zmeta .status-badge.warning {
             background: rgba(255, 193, 7, 0.15);
-            color: var(--warning-dark);
+            color: var(--warning);
         }
         .sheet-body .zone-item .info .zmeta .status-badge.unknown {
             background: rgba(0, 0, 0, 0.05);
@@ -705,22 +530,13 @@
             background: rgba(255, 107, 107, 0.10);
             color: var(--danger);
             cursor: pointer;
-            transition: transform 0.15s ease, background 0.15s ease;
+            transition: transform 0.1s ease, background 0.1s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 1rem;
             touch-action: manipulation;
             will-change: transform;
-        }
-        .sheet-body .zone-item .action-group button svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
-        }
-        .sheet-body .zone-item .action-group button:hover {
-            background: rgba(255, 107, 107, 0.20);
-            transform: scale(1.08);
         }
         .sheet-body .zone-item .action-group button:active {
             transform: scale(0.88);
@@ -729,27 +545,17 @@
             background: rgba(76, 175, 80, 0.10);
             color: var(--success);
         }
-        .sheet-body .zone-item .action-group button.btn-on:hover {
-            background: rgba(76, 175, 80, 0.20);
-        }
 
         .sheet-body .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: var(--text-muted);
         }
-        .sheet-body .empty-state svg {
-            width: 40px;
-            height: 40px;
-            fill: currentColor;
-            opacity: 0.4;
-            margin-bottom: 12px;
-        }
         .sheet-body .empty-state p {
             font-size: 0.85rem;
         }
 
-        /* ----- FLOATING REPORT BUTTON ----- */
+        /* ----- FAB ----- */
         .fab-report {
             position: absolute;
             bottom: 80px;
@@ -761,53 +567,39 @@
             border-radius: 50%;
             background: linear-gradient(135deg, var(--danger), var(--danger-dark));
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             box-shadow: 0 8px 32px rgba(255, 107, 107, 0.45);
             cursor: pointer;
             transition: opacity 0.25s ease, transform 0.25s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
             touch-action: manipulation;
             will-change: transform, opacity;
             contain: layout style paint;
-            z-index: 1000;
+            line-height: 1;
         }
         .fab-report.sheet-is-open {
             opacity: 0;
             pointer-events: none;
             transform: scale(0.85);
         }
-        .fab-report:hover {
-            transform: scale(1.08) translateY(-2px);
-            box-shadow: 0 12px 44px rgba(255, 107, 107, 0.55);
-        }
         .fab-report:active {
             transform: scale(0.90);
         }
-        .fab-report svg {
-            width: 28px;
-            height: 28px;
-            fill: currentColor;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-        }
 
-        /* ----- MODAL (Report) ----- */
+        /* ----- MODAL (no blur) ----- */
         .modal-overlay {
             position: fixed;
             inset: 0;
             z-index: 100;
             background: rgba(0, 0, 0, 0.40);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.35s ease;
+            transition: opacity 0.3s ease;
             padding: 20px;
             will-change: opacity;
         }
@@ -816,18 +608,14 @@
             pointer-events: all;
         }
         .modal-box {
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-radius: var(--radius-lg);
+            background: #fff;
+            border-radius: var(--radius-sm);
             max-width: 440px;
             width: 100%;
             padding: 28px 24px 24px;
-            box-shadow: var(--shadow-lg);
-            transform: scale(0.92) translateY(20px);
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            will-change: transform;
+            box-shadow: var(--shadow-md);
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.3s ease;
         }
         .modal-overlay.open .modal-box {
             transform: scale(1) translateY(0);
@@ -839,18 +627,8 @@
             font-size: 1.4rem;
             color: var(--text-muted);
             cursor: pointer;
-            transition: transform 0.2s ease, color 0.2s ease;
             padding: 4px;
             touch-action: manipulation;
-        }
-        .modal-box .modal-close svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-        .modal-box .modal-close:hover {
-            color: var(--text-primary);
-            transform: rotate(90deg);
         }
         .modal-box h2 {
             font-size: 1.3rem;
@@ -859,11 +637,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        .modal-box h2 svg {
-            width: 24px;
-            height: 24px;
-            fill: var(--danger);
         }
         .modal-box .sub {
             color: var(--text-muted);
@@ -890,7 +663,7 @@
             font-size: 0.9rem;
             font-weight: 500;
             color: var(--text-primary);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.2s ease;
             appearance: none;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
@@ -899,7 +672,6 @@
         .modal-box .zone-selector select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--primary-glow);
         }
         .modal-box .status-options {
             display: flex;
@@ -917,40 +689,30 @@
             font-weight: 600;
             font-size: 0.75rem;
             cursor: pointer;
-            transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+            transition: border-color 0.2s ease, background 0.2s ease;
             background: rgba(255, 255, 255, 0.5);
             color: var(--text-secondary);
             touch-action: manipulation;
-            will-change: transform;
         }
-        .modal-box .status-options .opt svg {
+        .modal-box .status-options .opt i {
             display: block;
-            width: 20px;
-            height: 20px;
-            margin: 0 auto 4px;
-            fill: currentColor;
-        }
-        .modal-box .status-options .opt:hover {
-            border-color: rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
+            font-size: 1.2rem;
+            margin-bottom: 4px;
         }
         .modal-box .status-options .opt.selected-off {
             border-color: var(--danger);
             background: rgba(255, 107, 107, 0.10);
-            color: var(--danger-dark);
-            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+            color: var(--danger);
         }
         .modal-box .status-options .opt.selected-on {
             border-color: var(--success);
             background: rgba(76, 175, 80, 0.10);
-            color: var(--success-dark);
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+            color: var(--success);
         }
         .modal-box .status-options .opt.selected-warning {
             border-color: var(--warning);
             background: rgba(255, 193, 7, 0.10);
-            color: var(--warning-dark);
-            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.15);
+            color: var(--warning);
         }
         .modal-box .submit-btn {
             width: 100%;
@@ -962,23 +724,14 @@
             font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.2s ease;
-            box-shadow: 0 4px 20px var(--primary-glow);
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3);
             touch-action: manipulation;
             will-change: transform;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-        }
-        .modal-box .submit-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-        .modal-box .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 32px var(--primary-glow);
         }
         .modal-box .submit-btn:active {
             transform: scale(0.97);
@@ -1002,45 +755,35 @@
             align-items: center;
             pointer-events: none;
             max-width: 90vw;
-            will-change: transform;
         }
         .toast {
             padding: 12px 24px;
             border-radius: var(--radius-full);
-            background: rgba(26, 26, 46, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(26, 26, 46, 0.9);
             color: #fff;
             font-weight: 500;
             font-size: 0.85rem;
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-sm);
             pointer-events: all;
-            animation: toast-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: toast-in 0.3s ease;
             display: flex;
             align-items: center;
             gap: 10px;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            will-change: transform, opacity;
-        }
-        .toast svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-            flex-shrink: 0;
         }
         .toast.success {
-            background: rgba(46, 125, 50, 0.92);
+            background: rgba(46, 125, 50, 0.9);
         }
         .toast.error {
-            background: rgba(198, 40, 40, 0.92);
+            background: rgba(198, 40, 40, 0.9);
         }
         .toast.info {
-            background: rgba(30, 30, 80, 0.92);
+            background: rgba(30, 30, 80, 0.9);
         }
         @keyframes toast-in {
             0% {
                 opacity: 0;
-                transform: translateY(30px) scale(0.9);
+                transform: translateY(20px) scale(0.9);
             }
             100% {
                 opacity: 1;
@@ -1048,7 +791,7 @@
             }
         }
         .toast.out {
-            animation: toast-out 0.3s ease forwards;
+            animation: toast-out 0.2s ease forwards;
         }
         @keyframes toast-out {
             0% {
@@ -1061,19 +804,17 @@
             }
         }
 
-        /* ----- LOADING OVERLAY ----- */
+        /* ----- LOADING ----- */
         .loading-overlay {
             position: absolute;
             inset: 0;
             z-index: 30;
             background: rgba(240, 242, 248, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.6s ease;
+            transition: opacity 0.4s ease;
             will-change: opacity;
         }
         .loading-overlay.hidden {
@@ -1081,8 +822,8 @@
             pointer-events: none;
         }
         .loading-overlay .spinner {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             border: 4px solid rgba(108, 99, 255, 0.15);
             border-top-color: var(--primary);
             border-radius: 50%;
@@ -1109,43 +850,28 @@
             .app-header .brand .icon {
                 width: 28px;
                 height: 28px;
-                font-size: 0.8rem;
+                font-size: 1rem;
             }
             .header-actions button {
                 width: 32px;
                 height: 32px;
-                font-size: 0.8rem;
+                font-size: 0.9rem;
             }
             .fab-report {
                 width: 50px;
                 height: 50px;
-                font-size: 1.3rem;
+                font-size: 1.5rem;
                 bottom: 72px;
                 right: 14px;
             }
             .bottom-sheet {
                 max-height: 60vh;
-                border-radius: var(--radius-md) var(--radius-md) 0 0;
             }
             .bottom-sheet .sheet-body {
                 max-height: calc(60vh - 100px);
-                padding: 0 10px 10px;
-            }
-            .sheet-body .zone-item {
-                padding: 8px 10px;
-                gap: 10px;
             }
             .modal-box {
-                padding: 20px 16px 20px;
-            }
-            .modal-box .status-options .opt {
-                min-width: 60px;
-                padding: 8px 6px;
-                font-size: 0.65rem;
-            }
-            .modal-box .status-options .opt svg {
-                width: 16px;
-                height: 16px;
+                padding: 20px 16px;
             }
             .toast {
                 font-size: 0.75rem;
@@ -1155,7 +881,6 @@
                 bottom: 72px;
             }
         }
-
         @media (min-width: 768px) {
             .bottom-sheet {
                 max-height: 45vh;
@@ -1168,56 +893,9 @@
                 right: 24px;
             }
         }
-
-        @media (min-width: 1024px) {
-            .bottom-sheet {
-                max-height: 40vh;
-            }
-            .bottom-sheet .sheet-body {
-                max-height: calc(40vh - 100px);
-            }
-            .fab-report {
-                bottom: 100px;
-                right: 32px;
-                width: 64px;
-                height: 64px;
-                font-size: 1.8rem;
-            }
-        }
-
-        @supports (padding: max(0px)) {
-            .app-header {
-                padding-top: max(10px, env(safe-area-inset-top));
-            }
-            .bottom-sheet {
-                padding-bottom: max(0px, env(safe-area-inset-bottom));
-            }
-            .fab-report {
-                bottom: max(80px, env(safe-area-inset-bottom) + 60px);
-            }
-            .toast-container {
-                bottom: max(90px, env(safe-area-inset-bottom) + 70px);
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-        .text-truncate {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Perf: reduced-motion cuts all animations */
         @media (prefers-reduced-motion: reduce) {
-            .header-actions .badge-dot::after,
-            .user-marker::after,
-            .loading-overlay .spinner,
-            .toast,
-            .bottom-sheet,
-            .modal-box {
-                animation: none !important;
+            * {
+                animation-duration: 0.01ms !important;
                 transition-duration: 0.01ms !important;
             }
             .bottom-sheet {
@@ -1227,51 +905,25 @@
                 opacity: 0.5 !important;
                 pointer-events: none;
             }
-            .custom-marker .pulse-ring-svg circle {
-                animation: none !important;
-            }
+        }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
 
-    <!-- Inline SVG Sprite (Zero‑dependency icons) -->
-    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
-        <symbol id="icon-bolt" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
-        <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM12 19c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/><path d="M4 12H2M6 6L4 4M6 18L4 20M12 4V2M18 6L20 4M18 18L20 20M20 12h2"/></symbol>
-        <symbol id="icon-exclamation-triangle" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></symbol>
-        <symbol id="icon-circle-question" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2-7.5c0 .83-.67 1.5-1.5 1.5H13v2h-2v-3c0-.55.45-1 1-1h1.5c.83 0 1.5-.67 1.5-1.5S14.33 9 13.5 9H13v-2h.5c1.93 0 3.5 1.57 3.5 3.5 0 .83-.34 1.58-.88 2.12z"/></symbol>
-        <symbol id="icon-map-pin" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></symbol>
-        <symbol id="icon-sync-alt" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></symbol>
-        <symbol id="icon-chart-simple" viewBox="0 0 24 24"><path d="M5 3h14v2H5V3zm0 4h10v2H5V7zm0 4h6v2H5v-2zm0 4h14v2H5v-2z"/></symbol>
-        <symbol id="icon-location-dot" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></symbol>
-        <symbol id="icon-triangle-exclamation" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2z"/><path d="M12 9v5M12 17h.01"/></symbol>
-        <symbol id="icon-xmark" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
-        <symbol id="icon-paper-plane" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></symbol>
-        <symbol id="icon-circle-check" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></symbol>
-        <symbol id="icon-circle-exclamation" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></symbol>
-        <symbol id="icon-circle-info" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
-        <symbol id="icon-clock" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></symbol>
-        <symbol id="icon-map-location-dot" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></symbol>
-    </svg>
-
     <div id="app">
         <!-- HEADER -->
         <header class="app-header">
             <div class="brand">
-                <div class="icon"><svg><use href="#icon-bolt"/></svg></div>
+                <div class="icon">⚡</div>
                 <span>3awd9ass</span>
             </div>
             <div class="header-actions">
-                <button id="refreshBtn" title="Refresh" aria-label="Refresh">
-                    <svg><use href="#icon-sync-alt"/></svg>
-                </button>
-                <button id="statsBtn" title="Stats" aria-label="Statistics">
-                    <svg><use href="#icon-chart-simple"/></svg>
-                </button>
-                <button class="badge-dot" id="locateBtn" title="Locate me" aria-label="Locate me">
-                    <svg><use href="#icon-location-dot"/></svg>
-                </button>
+                <button id="refreshBtn" title="Refresh">⟳</button>
+                <button id="statsBtn" title="Stats">📊</button>
+                <button class="badge-dot" id="locateBtn" title="Locate me">📍</button>
             </div>
         </header>
 
@@ -1282,63 +934,43 @@
             <!-- Loading -->
             <div class="loading-overlay hidden" id="loadingOverlay">
                 <div class="spinner"></div>
-                <p id="loadingText">Loading zones &hellip;</p>
+                <p id="loadingText">Loading zones…</p>
             </div>
 
-            <!-- FAB Report -->
-            <button class="fab-report" id="fabReport" aria-label="Report blackout">
-                <svg><use href="#icon-triangle-exclamation"/></svg>
-            </button>
+            <!-- FAB -->
+            <button class="fab-report" id="fabReport" aria-label="Report blackout">⚠️</button>
 
             <!-- Bottom Sheet -->
             <div class="bottom-sheet" id="bottomSheet">
-                <div class="sheet-handle" id="sheetHandle">
-                    <div class="bar"></div>
-                </div>
+                <div class="sheet-handle" id="sheetHandle"><div class="bar"></div></div>
                 <div class="sheet-header">
-                    <h3>
-                        <svg><use href="#icon-map-pin"/></svg>
-                        Zones
-                        <span class="count" id="zoneCount">0</span>
-                    </h3>
+                    <h3>📍 Zones <span class="count" id="zoneCount">0</span></h3>
                     <div class="sheet-actions">
                         <button class="active" data-filter="all">All</button>
                         <button data-filter="off">Off</button>
                         <button data-filter="on">On</button>
                     </div>
                 </div>
-                <div class="sheet-body" id="sheetBody">
-                    <!-- dynamic -->
-                </div>
+                <div class="sheet-body" id="sheetBody"></div>
             </div>
         </div>
 
         <!-- REPORT MODAL -->
         <div class="modal-overlay" id="reportModal">
             <div class="modal-box">
-                <button class="modal-close" id="modalClose"><svg><use href="#icon-xmark"/></svg></button>
-                <h2><svg><use href="#icon-triangle-exclamation"/></svg> Report Status</h2>
+                <button class="modal-close" id="modalClose">✕</button>
+                <h2>⚠️ Report Status</h2>
                 <p class="sub">Help your community by reporting the current power status in your zone.</p>
                 <div class="zone-selector">
-                    <label for="zoneSelect"><svg style="width:14px;height:14px;fill:currentColor;vertical-align:middle;"><use href="#icon-tag"/></svg> Select your zone</label>
-                    <select id="zoneSelect">
-                        <option value="">— Choose zone —</option>
-                    </select>
+                    <label for="zoneSelect">Select your zone</label>
+                    <select id="zoneSelect"><option value="">— Choose zone —</option></select>
                 </div>
                 <div class="status-options" id="statusOptions">
-                    <div class="opt" data-value="off">
-                        <svg><use href="#icon-bolt"/></svg> Blackout
-                    </div>
-                    <div class="opt" data-value="on">
-                        <svg><use href="#icon-sun"/></svg> Power On
-                    </div>
-                    <div class="opt" data-value="warning">
-                        <svg><use href="#icon-exclamation-triangle"/></svg> Warning
-                    </div>
+                    <div class="opt" data-value="off"><i>⚡</i> Blackout</div>
+                    <div class="opt" data-value="on"><i>☀️</i> Power On</div>
+                    <div class="opt" data-value="warning"><i>⚠️</i> Warning</div>
                 </div>
-                <button class="submit-btn" id="submitReport">
-                    <svg><use href="#icon-paper-plane"/></svg> Submit Report
-                </button>
+                <button class="submit-btn" id="submitReport">📨 Submit Report</button>
             </div>
         </div>
 
@@ -1353,7 +985,7 @@
         const API_URL =
             'https://njfulpklvqezflxiozhn.supabase.co/rest/v1/zone_board?select=*';
         const API_KEY = 'sb_publishable_C_7rg0jf6-e925Tji5n-qA_mLYruFUp';
-        const POLL_INTERVAL_MS = 15000;
+        const POLL_INTERVAL_MS = 30000; // 30s to reduce updates
         const MAP_TILE = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         const MAP_ATTRIB = '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>';
 
@@ -1389,7 +1021,7 @@
         // ============================================================
         let zones = [];
         let map = null;
-        const markers = new Map(); // id -> { marker, iconContainer, popupContent }
+        const markers = new Map(); // id -> { marker, iconEl, popupContent, status, hash }
         let userMarker = null;
         let userLocation = null;
         let selectedStatus = 'off';
@@ -1397,7 +1029,7 @@
         let isSheetOpen = false;
         let pollTimer = null;
         let isRefreshing = false;
-        const zoneHashes = new Map(); // id -> hash string
+        const zoneHashes = new Map();
         const statusCache = new Map();
 
         // ============================================================
@@ -1428,31 +1060,24 @@
         //  TOAST
         // ============================================================
         function showToast(message, type = 'info', duration = 3500) {
-            const icons = {
-                success: 'circle-check',
-                error: 'circle-exclamation',
-                info: 'circle-info',
-            };
             const el = document.createElement('div');
             el.className = `toast ${type}`;
-            el.innerHTML = `<svg><use href="#icon-${icons[type] || 'circle-info'}"/></svg> ${message}`;
+            el.textContent = message;
             toastContainer.appendChild(el);
             const remove = () => {
                 el.classList.add('out');
-                setTimeout(() => { if (el.parentNode) el.remove(); }, 350);
+                setTimeout(() => { if (el.parentNode) el.remove(); }, 200);
             };
             setTimeout(remove, duration);
             while (toastContainer.children.length > 3) {
                 const first = toastContainer.firstChild;
-                if (first) {
-                    first.classList.add('out');
-                    setTimeout(() => { if (first.parentNode) first.remove(); }, 350);
-                }
+                if (first) { first.classList.add('out');
+                    setTimeout(() => { if (first.parentNode) first.remove(); }, 200); }
             }
         }
 
         // ============================================================
-        //  API (with fetchpriority hint via headers? Not standard; we'll use early call)
+        //  API
         // ============================================================
         async function fetchZones() {
             const controller = new AbortController();
@@ -1476,14 +1101,9 @@
                     off_count: parseInt(item.off_count) || 0,
                     on_count: parseInt(item.on_count) || 0,
                     last_report: item.last_report || item.updated_at || new Date().toISOString(),
-                    raw: item,
                 }));
             } catch (err) {
-                if (err.name === 'AbortError') {
-                    console.warn('Fetch timed out');
-                } else {
-                    console.warn('Fetch error:', err);
-                }
+                console.warn('Fetch error:', err);
                 return null;
             } finally {
                 clearTimeout(timeout);
@@ -1491,7 +1111,7 @@
         }
 
         // ============================================================
-        //  COORDINATE HELPERS
+        //  COORDINATES
         // ============================================================
         function getGovCoords(gov) {
             if (!gov) return null;
@@ -1499,11 +1119,9 @@
             if (key) return GOV_COORDS[key];
             const firstWord = gov.split(/\s/)[0];
             const key2 = Object.keys(GOV_COORDS).find(k => k.toLowerCase().includes(firstWord.toLowerCase()));
-            if (key2) return GOV_COORDS[key2];
-            return null;
+            return key2 ? GOV_COORDS[key2] : null;
         }
 
-        // Heavy processing: will yield to main thread
         function assignCoordinates(zone) {
             const coords = getGovCoords(zone.gov);
             if (coords) {
@@ -1516,34 +1134,30 @@
         }
 
         // ============================================================
-        //  STATUS HELPERS
+        //  STATUS
         // ============================================================
         function getStatus(zone) {
-            const id = zone.id;
-            if (statusCache.has(id)) return statusCache.get(id);
+            if (statusCache.has(zone.id)) return statusCache.get(zone.id);
             const off = zone.off_count || 0;
             const on = zone.on_count || 0;
-            let status;
-            if (off > on) status = 'off';
-            else if (on > off) status = 'on';
-            else if (off === 0 && on === 0) status = 'unknown';
-            else status = 'warning';
-            statusCache.set(id, status);
-            return status;
+            let s;
+            if (off > on) s = 'off';
+            else if (on > off) s = 'on';
+            else if (off === 0 && on === 0) s = 'unknown';
+            else s = 'warning';
+            statusCache.set(zone.id, s);
+            return s;
         }
 
         function getStatusLabel(status) {
-            const map = { off: 'Blackout', on: 'Power On', warning: 'Warning', unknown: 'Unknown' };
-            return map[status] || status;
+            return { off: 'Blackout', on: 'Power On', warning: 'Warning', unknown: 'Unknown' } [status] || status;
         }
 
         function zoneHash(zone) {
             return `${zone.off_count}|${zone.on_count}|${zone.last_report}`;
         }
 
-        function invalidateStatusCache() {
-            statusCache.clear();
-        }
+        function invalidateStatusCache() { statusCache.clear(); }
 
         // ============================================================
         //  MAP
@@ -1552,10 +1166,10 @@
             map = L.map(mapEl, {
                 zoomControl: false,
                 attributionControl: false,
-                preferCanvas: true, // Leaflet tuning: use canvas for vectors (popups etc)
-                fadeAnimation: false, // reduce paint storms
+                preferCanvas: true,
+                fadeAnimation: false,
                 zoomAnimation: true,
-                markerZoomAnimation: false, // avoid re-rendering markers on zoom
+                markerZoomAnimation: false,
             }).setView([34.0, 9.0], 7);
 
             L.tileLayer(MAP_TILE, {
@@ -1573,94 +1187,60 @@
             requestAnimationFrame(() => map.invalidateSize());
         }
 
-        // ----- Marker icon generation with SMIL pulse -----
-        function buildMarkerSVG(status) {
-            const iconId = status === 'off' ? 'bolt' :
-                status === 'on' ? 'sun' :
-                status === 'warning' ? 'exclamation-triangle' : 'circle-question';
-            const pulse = status === 'off' ? `
-                <svg class="pulse-ring-svg" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,107,107,0.4)" stroke-width="2">
-                        <animateTransform attributeName="transform" type="scale" values="1;1.8" dur="2s" repeatCount="indefinite" additive="sum"/>
-                        <animate attributeName="opacity" values="0.8;0" dur="2s" repeatCount="indefinite"/>
-                    </circle>
-                </svg>
-            ` : '';
+        // ----- Emoji mapping -----
+        const statusEmoji = {
+            off: '⚡',
+            on: '☀️',
+            warning: '⚠️',
+            unknown: '❓'
+        };
 
-            return `
-                <svg viewBox="0 0 40 40" width="40" height="40" style="position:absolute;top:0;left:0;pointer-events:none;">
-                    <circle cx="20" cy="20" r="18" fill="var(--status-bg, #9e9e9e)"/>
-                    <use href="#icon-${iconId}" x="8" y="8" width="24" height="24" fill="white"/>
-                    ${pulse}
-                </svg>
-            `;
-        }
-
+        // ----- Create marker icon as a simple div (no SVG) -----
         function createMarkerIcon(status) {
-            const container = document.createElement('div');
-            container.className = `custom-marker marker-${status}`;
-            container.innerHTML = buildMarkerSVG(status);
+            const div = document.createElement('div');
+            div.className = `custom-marker marker-${status}`;
+            div.textContent = statusEmoji[status] || '?';
             return L.divIcon({
-                html: container.outerHTML,
+                html: div.outerHTML,
                 className: '',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20],
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
                 popupAnchor: [0, -24],
             });
         }
 
-        // Mutate an existing marker's icon in-place (no setIcon)
-        function mutateMarkerIcon(markerData, status) {
-            const container = markerData.iconContainer;
-            if (!container) return;
-            // Update class
-            container.className = `custom-marker marker-${status}`;
-            // Update inner SVG
-            container.innerHTML = buildMarkerSVG(status);
-        }
-
-        // Build popup content (returns HTML string)
+        // ----- Build popup HTML -----
         function buildPopupHTML(zone) {
             const status = getStatus(zone);
             const label = getStatusLabel(status);
             const timeStr = zone.last_report ? new Date(zone.last_report).toLocaleString() : 'Unknown';
-            const iconId = status === 'off' ? 'bolt' :
-                status === 'on' ? 'sun' :
-                status === 'warning' ? 'exclamation-triangle' : 'circle-question';
             return `
             <div class="popup-zone" data-zone-id="${zone.id}">
               <div class="name">${zone.name}</div>
               <div class="gov">${zone.gov}</div>
               <div class="status-row">
-                <span class="status-badge ${status}">
-                  <svg><use href="#icon-${iconId}"/></svg>
-                  ${label}
-                </span>
+                <span class="status-badge ${status}">${statusEmoji[status]} ${label}</span>
               </div>
               <div class="counts">
                 <span><span class="off">⬇ ${zone.off_count}</span> off</span>
                 <span><span class="on">⬆ ${zone.on_count}</span> on</span>
               </div>
-              <div class="time"><svg><use href="#icon-clock"/></svg> ${timeStr}</div>
+              <div class="time">🕒 ${timeStr}</div>
               <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
-                <button class="report-btn" data-id="${zone.id}" data-status="off">
-                  <svg><use href="#icon-bolt"/></svg> Report Off
-                </button>
-                <button class="report-btn report-on" data-id="${zone.id}" data-status="on">
-                  <svg><use href="#icon-sun"/></svg> Report On
-                </button>
+                <button class="report-btn" data-id="${zone.id}" data-status="off">⚡ Report Off</button>
+                <button class="report-btn report-on" data-id="${zone.id}" data-status="on">☀️ Report On</button>
               </div>
             </div>
           `;
         }
 
         // ============================================================
-        //  MARKER UPDATE - mutation only
+        //  MARKER UPDATE - mutate in-place, no recreation
         // ============================================================
         function updateMarkers(newZones) {
             const newIds = new Set(newZones.map(z => z.id));
 
-            // Remove markers that no longer exist
+            // Remove stale markers
             for (const [id, data] of markers) {
                 if (!newIds.has(id)) {
                     map.removeLayer(data.marker);
@@ -1673,25 +1253,25 @@
                 const status = getStatus(zone);
                 const hash = zoneHash(zone);
 
-                let markerData = markers.get(zone.id);
-                if (markerData) {
-                    // Update status if changed (mutate icon)
-                    if (markerData._status !== status) {
-                        mutateMarkerIcon(markerData, status);
-                        markerData._status = status;
+                let data = markers.get(zone.id);
+                if (data) {
+                    // Update status (change class and text)
+                    if (data.status !== status) {
+                        data.iconEl.className = `custom-marker marker-${status}`;
+                        data.iconEl.textContent = statusEmoji[status] || '?';
+                        data.status = status;
                     }
-                    // Update popup content if changed (mutate in-place)
-                    if (markerData._popupHash !== hash) {
-                        const popupContent = markerData.popupContent;
-                        if (popupContent) {
-                            popupContent.innerHTML = buildPopupHTML(zone);
+                    // Update popup content if changed
+                    if (data.hash !== hash) {
+                        if (data.popupContent) {
+                            data.popupContent.innerHTML = buildPopupHTML(zone);
                         }
-                        markerData._popupHash = hash;
+                        data.hash = hash;
                     }
-                    // Update position if changed
-                    const pos = markerData.marker.getLatLng();
+                    // Update position if needed
+                    const pos = data.marker.getLatLng();
                     if (Math.abs(pos.lat - zone.lat) > 0.0001 || Math.abs(pos.lng - zone.lng) > 0.0001) {
-                        markerData.marker.setLatLng([zone.lat, zone.lng]);
+                        data.marker.setLatLng([zone.lat, zone.lng]);
                     }
                 } else {
                     // Create new marker
@@ -1700,32 +1280,31 @@
                         .addTo(map)
                         .bindPopup(buildPopupHTML(zone), { maxWidth: 300 });
 
-                    // Store references for mutation
-                    const iconElement = marker._icon;
+                    // Get the icon element (the div we created)
+                    const iconEl = marker._icon;
                     const popupContent = marker._popup ? marker._popup._contentNode : null;
 
-                    const data = {
+                    const dataObj = {
                         marker,
-                        iconContainer: iconElement,
-                        popupContent: popupContent,
-                        _status: status,
-                        _popupHash: hash,
+                        iconEl,
+                        popupContent,
+                        status,
+                        hash,
                     };
-                    markers.set(zone.id, data);
+                    markers.set(zone.id, dataObj);
 
-                    // Popup event: delegate button clicks
+                    // Popup event delegation
                     marker.on('popupopen', function() {
                         const content = this._popup._contentNode;
                         if (!content) return;
-                        // Use event delegation on content
                         if (!content._listenerAttached) {
                             content.addEventListener('click', function(e) {
                                 const btn = e.target.closest('.report-btn');
                                 if (btn) {
                                     e.stopPropagation();
                                     const id = btn.dataset.id;
-                                    const status = btn.dataset.status || 'off';
-                                    openReportModal(id, status);
+                                    const st = btn.dataset.status || 'off';
+                                    openReportModal(id, st);
                                 }
                             });
                             content._listenerAttached = true;
@@ -1741,7 +1320,7 @@
         }
 
         // ============================================================
-        //  SHEET UPDATE - smart DOM reconciliation (node moving)
+        //  SHEET UPDATE - node moving reconciliation
         // ============================================================
         function updateSheet(newZones) {
             const filtered = currentFilter === 'all' ? newZones : newZones.filter(z => getStatus(z) === currentFilter);
@@ -1749,16 +1328,10 @@
             zoneCount.textContent = count;
 
             if (count === 0) {
-                sheetBody.innerHTML = `
-              <div class="empty-state">
-                <svg><use href="#icon-map-location-dot"/></svg>
-                <p>No zones found${currentFilter !== 'all' ? ` with status "${currentFilter}"` : ''}</p>
-              </div>
-            `;
+                sheetBody.innerHTML = `<div class="empty-state"><p>No zones found${currentFilter !== 'all' ? ` with status "${currentFilter}"` : ''}</p></div>`;
                 return;
             }
 
-            // Map existing items by id
             const existingItems = new Map();
             for (const child of sheetBody.children) {
                 if (child.dataset && child.dataset.id) {
@@ -1767,11 +1340,8 @@
             }
 
             const fragment = document.createDocumentFragment();
-            const timeFormatter = new Intl.DateTimeFormat(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-            });
+            const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit',
+            second: '2-digit' });
 
             for (const zone of filtered) {
                 const status = getStatus(zone);
@@ -1781,7 +1351,7 @@
 
                 let item = existingItems.get(id);
                 if (item) {
-                    // Update existing item in-place
+                    // Update existing
                     const dot = item.querySelector('.dot');
                     if (dot) dot.className = `dot ${status}`;
                     const nameEl = item.querySelector('.zname');
@@ -1791,10 +1361,7 @@
                     const badge = item.querySelector('.status-badge');
                     if (badge) {
                         badge.className = `status-badge ${status}`;
-                        const iconId = status === 'off' ? 'bolt' :
-                            status === 'on' ? 'sun' :
-                            status === 'warning' ? 'exclamation-triangle' : 'circle-question';
-                        badge.innerHTML = `<svg><use href="#icon-${iconId}"/></svg> ${label}`;
+                        badge.textContent = `${statusEmoji[status]} ${label}`;
                     }
                     const offEl = item.querySelector('.counts .off');
                     if (offEl) offEl.textContent = `⬇ ${zone.off_count}`;
@@ -1802,45 +1369,35 @@
                     if (onEl) onEl.textContent = `⬆ ${zone.on_count}`;
                     const timeEl = item.querySelector('.zmeta span:last-child');
                     if (timeEl) {
-                        timeEl.innerHTML = `<svg style="width:12px;height:12px;fill:currentColor;vertical-align:middle;"><use href="#icon-clock"/></svg> ${timeStr}`;
+                        timeEl.innerHTML = `🕒 ${timeStr}`;
                     }
                     fragment.appendChild(item);
                     existingItems.delete(id);
                 } else {
-                    // Create new item
+                    // Create new
                     const div = document.createElement('div');
                     div.className = 'zone-item';
                     div.dataset.id = id;
-                    const iconId = status === 'off' ? 'bolt' :
-                        status === 'on' ? 'sun' :
-                        status === 'warning' ? 'exclamation-triangle' : 'circle-question';
                     div.innerHTML = `
                 <div class="dot ${status}"></div>
                 <div class="info">
                   <div class="zname">${zone.name}</div>
                   <div class="zgov">${zone.gov}</div>
                   <div class="zmeta">
-                    <span class="status-badge ${status}">
-                      <svg style="width:12px;height:12px;fill:currentColor;"><use href="#icon-${iconId}"/></svg>
-                      ${label}
-                    </span>
+                    <span class="status-badge ${status}">${statusEmoji[status]} ${label}</span>
                     <span class="counts">
                       <span class="off">⬇ ${zone.off_count}</span>
                       <span class="on">⬆ ${zone.on_count}</span>
                     </span>
-                    <span><svg style="width:12px;height:12px;fill:currentColor;vertical-align:middle;"><use href="#icon-clock"/></svg> ${timeStr}</span>
+                    <span>🕒 ${timeStr}</span>
                   </div>
                 </div>
                 <div class="action-group">
-                  <button class="btn-off" data-id="${id}" title="Report blackout">
-                    <svg><use href="#icon-bolt"/></svg>
-                  </button>
-                  <button class="btn-on" data-id="${id}" title="Report power on">
-                    <svg><use href="#icon-sun"/></svg>
-                  </button>
+                  <button class="btn-off" data-id="${id}" title="Report blackout">⚡</button>
+                  <button class="btn-on" data-id="${id}" title="Report power on">☀️</button>
                 </div>
               `;
-                    // Use delegation on the item itself
+                    // Delegation on the item
                     div.addEventListener('click', function(e) {
                         const btn = e.target.closest('button');
                         if (btn) {
@@ -1854,7 +1411,7 @@
                             }
                             return;
                         }
-                        // Click on item: fly to zone
+                        // Fly to zone
                         const zoneData = newZones.find(z => z.id === id);
                         if (zoneData && zoneData.lat && zoneData.lng) {
                             map.flyTo([zoneData.lat, zoneData.lng], 13, { duration: 1.2 });
@@ -1867,22 +1424,20 @@
                 }
             }
 
-            // Remove leftover items
+            // Remove leftovers
             for (const [, item] of existingItems) {
                 item.remove();
             }
 
-            // Append fragment (which moves existing nodes, preserving listeners)
             sheetBody.appendChild(fragment);
         }
 
         // ============================================================
-        //  MAIN REFRESH (with idle scheduling)
+        //  REFRESH
         // ============================================================
         async function refreshData(showLoading = false) {
             if (isRefreshing) return;
             isRefreshing = true;
-
             if (showLoading) {
                 loadingEl.classList.remove('hidden');
                 loadingText.textContent = 'Loading zones…';
@@ -1890,40 +1445,27 @@
 
             const data = await fetchZones();
             if (data) {
-                // Heavy processing: assignCoordinates for new zones; yield if needed
                 let newZones;
                 if (zones.length === 0) {
-                    // Process in batches with yielding
-                    const temp = [];
-                    for (let i = 0; i < data.length; i++) {
-                        temp.push(assignCoordinates(data[i]));
-                        if (i % 5 === 0 && i > 0) {
-                            await yieldToMain();
-                        }
-                    }
-                    newZones = temp;
+                    newZones = data.map(z => assignCoordinates(z));
                 } else {
                     const coordMap = new Map();
                     for (const z of zones) coordMap.set(z.id, { lat: z.lat, lng: z.lng });
-                    newZones = data.map(zone => {
-                        if (coordMap.has(zone.id)) {
-                            const coords = coordMap.get(zone.id);
-                            return { ...zone, lat: coords.lat, lng: coords.lng };
-                        } else {
-                            return assignCoordinates(zone);
+                    newZones = data.map(z => {
+                        if (coordMap.has(z.id)) {
+                            const c = coordMap.get(z.id);
+                            return { ...z, lat: c.lat, lng: c.lng };
                         }
+                        return assignCoordinates(z);
                     });
                 }
 
-                // Diff
                 let changed = false;
                 const newHashes = new Map();
                 for (const z of newZones) {
                     const h = zoneHash(z);
                     newHashes.set(z.id, h);
-                    if (!zoneHashes.has(z.id) || zoneHashes.get(z.id) !== h) {
-                        changed = true;
-                    }
+                    if (!zoneHashes.has(z.id) || zoneHashes.get(z.id) !== h) changed = true;
                 }
                 if (zoneHashes.size !== newHashes.size) changed = true;
 
@@ -1933,40 +1475,24 @@
                     for (const [id, h] of newHashes) zoneHashes.set(id, h);
                     invalidateStatusCache();
                     for (const z of zones) getStatus(z);
-                    // Update markers and sheet (these mutate in-place)
                     updateMarkers(zones);
                     updateSheet(zones);
                     populateZoneSelect();
                 }
 
-                if (showLoading) {
-                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
-                }
+                if (showLoading) setTimeout(() => loadingEl.classList.add('hidden'), 300);
                 isRefreshing = false;
                 return true;
             } else {
-                if (showLoading) {
-                    setTimeout(() => loadingEl.classList.add('hidden'), 300);
-                }
+                if (showLoading) setTimeout(() => loadingEl.classList.add('hidden'), 300);
                 showToast('Failed to fetch data. Retrying…', 'error', 2500);
                 isRefreshing = false;
                 return false;
             }
         }
 
-        // Helper to yield to main thread
-        function yieldToMain() {
-            return new Promise(resolve => {
-                if ('scheduler' in window && 'yield' in window.scheduler) {
-                    scheduler.yield().then(resolve);
-                } else {
-                    setTimeout(resolve, 0);
-                }
-            });
-        }
-
         // ============================================================
-        //  OTHER UI FUNCTIONS
+        //  UI HELPERS
         // ============================================================
         let zoneSelectOptionsCache = '';
 
@@ -1999,9 +1525,7 @@
             fabReport.classList.remove('sheet-is-open');
         }
 
-        function toggleSheet() {
-            isSheetOpen ? closeSheet() : openSheet();
-        }
+        function toggleSheet() { isSheetOpen ? closeSheet() : openSheet(); }
 
         function openReportModal(zoneId = null, presetStatus = null) {
             let opts = '<option value="">— Choose zone —</option>';
@@ -2021,17 +1545,13 @@
             reportModal.classList.add('open');
         }
 
-        function closeReportModal() {
-            reportModal.classList.remove('open');
-        }
+        function closeReportModal() { reportModal.classList.remove('open'); }
 
         function updateStatusUI() {
             statusOpts.forEach(el => {
                 const val = el.dataset.value;
                 el.className = 'opt';
-                if (val === selectedStatus) {
-                    el.classList.add(`selected-${val}`);
-                }
+                if (val === selectedStatus) el.classList.add(`selected-${val}`);
             });
         }
 
@@ -2041,10 +1561,7 @@
         let isLocating = false;
 
         function locateUser(animate = true) {
-            if (!navigator.geolocation) {
-                showToast('Geolocation not supported.', 'error');
-                return;
-            }
+            if (!navigator.geolocation) { showToast('Geolocation not supported.', 'error'); return; }
             if (isLocating) return;
             isLocating = true;
             if (animate) showToast('Locating you…', 'info', 1500);
@@ -2053,10 +1570,8 @@
                     isLocating = false;
                     const { latitude, longitude } = pos.coords;
                     userLocation = { lat: latitude, lng: longitude };
-                    if (userMarker) {
-                        map.removeLayer(userMarker);
-                        userMarker = null;
-                    }
+                    if (userMarker) { map.removeLayer(userMarker);
+                        userMarker = null; }
                     const divIcon = L.divIcon({
                         html: '<div class="user-marker"></div>',
                         className: '',
@@ -2068,9 +1583,8 @@
                         .bindPopup('📍 You are here');
 
                     const nearest = findNearestZone(latitude, longitude);
-
                     if (animate) {
-                        map.flyTo([latitude, longitude], 12, { duration: 1.5 });
+                        map.flyTo([latitude, longitude], 12, { duration: 1.2 });
                         map.once('moveend', () => {
                             if (nearest && markers.has(nearest.id)) markers.get(nearest.id).marker.openPopup();
                         });
@@ -2078,7 +1592,6 @@
                         map.setView([latitude, longitude], 12);
                         if (nearest && markers.has(nearest.id)) markers.get(nearest.id).marker.openPopup();
                     }
-
                     if (nearest) {
                         showToast(`📍 Nearest: "${nearest.name}"`, 'success', 3000);
                         highlightZone(nearest.id);
@@ -2088,30 +1601,25 @@
                 },
                 (err) => {
                     isLocating = false;
-                    console.warn('Geolocation error:', err);
                     if (animate) showToast('Could not get your location. Check permissions.', 'error');
                 }, { enableHighAccuracy: true, timeout: 10000 }
             );
         }
 
         function findNearestZone(lat, lng) {
-            let best = null;
-            let bestDist = Infinity;
-            const latRad = lat * Math.PI / 180;
-            const lngRad = lng * Math.PI / 180;
+            let best = null,
+                bestDist = Infinity;
             const R = 6371;
+            const latRad = lat * Math.PI / 180;
             for (const z of zones) {
-                if (!z.lat || !z.lng || isNaN(z.lat) || isNaN(z.lng)) continue;
+                if (!z.lat || !z.lng) continue;
                 const dLat = (z.lat - lat) * Math.PI / 180;
                 const dLng = (z.lng - lng) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) ** 2 +
-                    Math.cos(latRad) * Math.cos(z.lat * Math.PI / 180) *
-                    Math.sin(dLng / 2) ** 2;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(latRad) * Math.cos(z.lat * Math.PI / 180) * Math.sin(dLng / 2) **
+                2;
                 const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                if (d < bestDist) {
-                    bestDist = d;
-                    best = z;
-                }
+                if (d < bestDist) { bestDist = d;
+                    best = z; }
             }
             return best;
         }
@@ -2123,10 +1631,8 @@
                     item.style.background = 'rgba(108,99,255,0.12)';
                     item.style.borderColor = 'var(--primary)';
                     item.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    setTimeout(() => {
-                        item.style.background = '';
-                        item.style.borderColor = '';
-                    }, 3000);
+                    setTimeout(() => { item.style.background = '';
+                        item.style.borderColor = ''; }, 3000);
                     break;
                 }
             }
@@ -2136,7 +1642,6 @@
         //  STATS
         // ============================================================
         function showStats() {
-            const total = zones.length;
             let off = 0,
                 on = 0,
                 warning = 0,
@@ -2148,30 +1653,21 @@
                 else if (s === 'warning') warning++;
                 else unknown++;
             }
-            const msg =
-                `📊 <b>Zone Stats</b><br>Total: ${total} &nbsp;|&nbsp; 🔴 Off: ${off} &nbsp;|&nbsp; 🟢 On: ${on} &nbsp;|&nbsp; 🟡 Warning: ${warning} &nbsp;|&nbsp; ⚪ Unknown: ${unknown}`;
-            showToast(msg, 'info', 5000);
+            showToast(`📊 Total: ${zones.length} | ⚡ Off: ${off} | ☀️ On: ${on} | ⚠️ Warning: ${warning} | ❓ Unknown: ${unknown}`,
+                'info', 5000);
         }
 
         // ============================================================
         //  REPORT SUBMISSION
         // ============================================================
         async function submitReport(zoneId, status) {
-            if (!zoneId) {
-                showToast('Please select a zone.', 'error');
-                return false;
-            }
+            if (!zoneId) { showToast('Please select a zone.', 'error'); return false; }
             const zone = zones.find(z => z.id === zoneId);
-            if (!zone) {
-                showToast('Zone not found.', 'error');
-                return false;
-            }
+            if (!zone) { showToast('Zone not found.', 'error'); return false; }
 
             if (status === 'off') zone.off_count = (zone.off_count || 0) + 1;
             else if (status === 'on') zone.on_count = (zone.on_count || 0) + 1;
-            else if (status === 'warning') {
-                zone.off_count = (zone.off_count || 0) + 0.5;
-            }
+            else if (status === 'warning') zone.off_count = (zone.off_count || 0) + 0.5;
             zone.last_report = new Date().toISOString();
             invalidateStatusCache();
             for (const z of zones) getStatus(z);
@@ -2241,24 +1737,23 @@
             });
 
             fabReport.addEventListener('click', () => {
-                if (zones.length === 0) {
-                    showToast('No zones loaded yet.', 'error');
-                    return;
-                }
+                if (zones.length === 0) { showToast('No zones loaded yet.', 'error'); return; }
                 if (userLocation) {
                     const nearest = findNearestZone(userLocation.lat, userLocation.lng);
-                    if (nearest) {
-                        openReportModal(nearest.id, 'off');
-                        return;
-                    }
+                    if (nearest) { openReportModal(nearest.id, 'off'); return; }
                 }
                 openReportModal();
             });
 
             refreshBtn.addEventListener('click', () => {
-                refreshBtn.querySelector('svg').classList.add('fa-spin');
+                refreshBtn.textContent = '⟳';
+                refreshBtn.style.transform = 'rotate(0deg)';
+                refreshBtn.style.transition = 'transform 0.6s ease';
+                refreshBtn.style.transform = 'rotate(360deg)';
                 refreshData(true).finally(() => {
-                    refreshBtn.querySelector('svg').classList.remove('fa-spin');
+                    refreshBtn.style.transition = 'none';
+                    refreshBtn.style.transform = 'rotate(0deg)';
+                    setTimeout(() => refreshBtn.style.transition = '', 0);
                 });
             });
 
@@ -2266,9 +1761,7 @@
             statsBtn.addEventListener('click', showStats);
 
             modalClose.addEventListener('click', closeReportModal);
-            reportModal.addEventListener('click', (e) => {
-                if (e.target === reportModal) closeReportModal();
-            });
+            reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
 
             statusOpts.forEach(el => {
                 el.addEventListener('click', () => {
@@ -2279,17 +1772,12 @@
 
             submitBtn.addEventListener('click', async () => {
                 const zoneId = zoneSelect.value;
-                if (!zoneId) {
-                    showToast('Please select a zone.', 'error');
-                    return;
-                }
+                if (!zoneId) { showToast('Please select a zone.', 'error'); return; }
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<svg class="fa-spin"><use href="#icon-sync-alt"/></svg> Submitting…';
-
+                submitBtn.textContent = '⏳ Submitting…';
                 const ok = await submitReport(zoneId, selectedStatus);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<svg><use href="#icon-paper-plane"/></svg> Submit Report';
-
+                submitBtn.textContent = '📨 Submit Report';
                 if (ok) {
                     const zone = zones.find(z => z.id === zoneId);
                     showToast(`✅ Report submitted for "${zone?.name || zoneId}" (${selectedStatus})`, 'success');
@@ -2299,16 +1787,12 @@
                 }
             });
 
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeReportModal();
-            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeReportModal(); });
 
             let resizeRaf = null;
             window.addEventListener('resize', () => {
                 if (resizeRaf) cancelAnimationFrame(resizeRaf);
-                resizeRaf = requestAnimationFrame(() => {
-                    if (map) map.invalidateSize();
-                });
+                resizeRaf = requestAnimationFrame(() => { if (map) map.invalidateSize(); });
             }, { passive: true });
         }
 
@@ -2318,16 +1802,12 @@
         function startPolling() {
             if (pollTimer) clearInterval(pollTimer);
             pollTimer = setInterval(() => {
-                if (document.visibilityState === 'visible') {
-                    refreshData(false);
-                }
+                if (document.visibilityState === 'visible') refreshData(false);
             }, POLL_INTERVAL_MS);
         }
 
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                refreshData(false);
-            }
+            if (document.visibilityState === 'visible') refreshData(false);
         });
 
         // ============================================================
@@ -2336,15 +1816,10 @@
         async function init() {
             initMap();
             bindEvents();
-
             await refreshData(true);
             startPolling();
-
-            setTimeout(() => {
-                if (navigator.geolocation) locateUser(false);
-            }, 1200);
-
-            console.log('⚡ 3awed9ass – performance-optimized');
+            setTimeout(() => { if (navigator.geolocation) locateUser(false); }, 1200);
+            console.log('⚡ 3awd9ass – ultra‑optimized');
         }
 
         document.addEventListener('DOMContentLoaded', init);
